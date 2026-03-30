@@ -6,7 +6,8 @@ import math
 from animation import ScoreAnimation
 from itertools import chain
 collision = physics.PolygonCollisions()
-man = physics.PolygonManager(collision)
+pendulum_solver = physics.PendulumSolver()
+man = physics.PolygonManager(collision, pendulum_solver)
 pygame.init()
 SCREEN_HEIGHT = 900
 SCREEN_WIDTH = 1700
@@ -141,7 +142,7 @@ class GameLogic:
 
         #man.add_polygon(polygon2)
         self.polygons = [self.polygon_main]
-        first_stick = physics.Rectangle(width=19, length=200, center_x=600, center_y=500)
+        first_stick = physics.Rectangle(width=25, length=200, center_x=600, center_y=500)
         first_stick.initialize_self_vector()
         first_stick.allow_motion= False
         self.sticks.append(first_stick)
@@ -170,7 +171,7 @@ class GameLogic:
             self.animation_num +=score_increase
             self.animation.alpha = 255
             stick.draw_animation = True
-            new_stick = physics.Rectangle(vertices=4, vx = 0, center_x = random.randint(500, 1500), center_y = random.randint(200, 700), length = 200, width=19, omega = 0)
+            new_stick = physics.Rectangle(vertices=4, vx = 0, center_x = random.randint(500, 1500), center_y = random.randint(200, 700), length = 200, width=25, omega = 0)
             
             new_stick.angle = (random.randint(0, 180))
             max_att = 10
@@ -184,7 +185,7 @@ class GameLogic:
                     polygon: physics.Polygon
                     if new_stick.AABB_overlap(new_stick.aabb, polygon.aabb):
                         collision_free = False
-                        new_stick = physics.Rectangle(vertices=4, vx = 0, center_x = random.randint(500, 1500), center_y = random.randint(200, 700), length = 200, width=17, omega = 0)
+                        new_stick = physics.Rectangle(vertices=4, vx = 0, center_x = random.randint(500, 1500), center_y = random.randint(200, 700), length = 200, width=25, omega = 0)
                         
                         new_stick.angle = (random.randint(0, 180))
                 att += 1
@@ -403,10 +404,15 @@ class GameLogic:
 
             stick: physics.Rectangle
             int_points = []
+            invalid = False
             for vec in stick.world_vertices:
-
+                if (abs(vec.x) > 1e6 or abs(vec.y) > 1e6) or (math.isnan(vec.x) or math.isnan(vec.y)):
+                    self.sticks.remove(stick)
+                    invalid = True
+                    break
                 int_points.append((int(vec.x), int(vec.y)))
-                
+            if invalid:
+                continue
             if not stick.collided:
                 pygame.gfxdraw.filled_polygon(self.screen, int_points, (255, 255, 255))
             else:
@@ -434,7 +440,7 @@ class GameLogic:
                 if stick.draw_animation:
                     stick.draw_animation = False
                     for stick in self.sticks:
-                        if not stick.remove:
+                         if not stick.remove:
                             stick.draw_animation = True
                             break
     def endcard_stub(self, clock):

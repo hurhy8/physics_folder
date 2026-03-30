@@ -35,7 +35,7 @@ class Shape:
     
 
     def __init__(self, vx: float = 25, center_x: float = 400, center_y: float = 0,
-                 length: float = 110, omega: float = 3, angle: float = 0, mass: float = 25) -> None: ...
+                 length: float = 110, omega: float = 3, angle: float = 0, mass: float = 25, static: bool = False) -> None: ...
 
 class Polygon(Shape):
     next_id: int
@@ -51,6 +51,7 @@ class Polygon(Shape):
                  angle: float = 0, mass: float = 25) -> None: ...
 
     def sat_algorithm_boundary(self, segment_edge: Vec2, segment_vertices: Tuple[Vec2, Vec2]) -> Tuple[bool, Vec2]: ...
+    def initialize_self_vector(self) -> None: ...
     def wall(self, segv1: Vec2, segv2: Vec2) -> None: ...
     def clamp_motion(self) -> None: ...
     def is_flat(self, angle: float, flat_angles: List[float], tolerance: float = 0.001) -> bool: ...
@@ -136,3 +137,100 @@ class CompoundShape:
     num_times_sleepy: int
     gravity: float
     angle: float
+
+
+
+
+class PendulumJoint:
+    rigid_body: Shape
+    body_anchor: Vec2
+    world_anchor: Vec2
+    rope_length: float
+
+    def __init__(
+        self,
+        rigid_body: Shape,
+        body_anchor: Vec2,
+        world_anchor: Vec2,
+        rope_length: float,
+    ) -> None: ...
+
+    def update_local_anchor(self) -> Vec2: ...
+
+class PendulumJoint:
+    
+    body_anchor: Vec2
+    world_anchor: Vec2
+    rigid_body: Shape
+    rope_length: float
+
+    def __init__(
+        self,
+        
+        body_anchor: Vec2,
+        world_anchor: Vec2,
+        rigid_body: Shape
+    ) -> None: ...
+
+    def update_local_anchor(self) -> Vec2: ...
+
+
+
+
+class DynamicJoint:
+    body_anchor1: Vec2
+    body_anchor2: Vec2
+    rope_length: float
+    initial_components: Vec2
+    rigid_body1: Shape
+    rigid_body2: Shape
+
+    def __init__(
+        self,
+        anchor1: Vec2,
+        anchor2: Vec2,
+        body: Shape,
+        body_other: Shape
+    ) -> None: ...
+    
+    def impulse_resolution(self) -> None: ...
+    
+    def relative_velocity(self, polygon: Shape, contact: Vec2) -> Tuple[float, float, Vec2]: ...
+    
+    def update_local_anchor(self, anchor: Vec2, shape: Shape) -> Vec2: ...
+    
+    def getRopeLength(self, body_to_world_anchor1: Vec2, body_to_world_anchor2: Vec2) -> float: ...
+
+
+class SoftJoint:
+    body_anchor1: Vec2
+    body_anchor2: Vec2
+    k: float
+    rope_length: float
+    initial_components: Vec2
+    rigid_body1: Shape
+    rigid_body2: Shape
+
+    def __init__(self, 
+                 world1: Vec2, 
+                 world2: Vec2, 
+                 body: Shape, 
+                 body_other: Shape, 
+                 k_: float) -> None: ...
+    
+    def impulse_resolution(self) -> None: ...
+    
+    def relative_velocity(self, polygon: Shape, contact: Vec2) -> Tuple[float, float, Vec2]: ...
+    
+    def update_local_anchor(self, anchor: Vec2, shape: Shape) -> Vec2: ...
+    
+    def getRopeLength(self, body_to_world_anchor1: Vec2, body_to_world_anchor2: Vec2) -> float: ...
+class PendulumSolver:
+    joints: List
+    def __init__(self) -> None: ...
+
+    def add_joint(self, joint: PendulumJoint) -> None: ...
+
+    def solve(self) -> None: ...
+
+    def remove_rigid_body(self, shape: Shape) -> None: ...

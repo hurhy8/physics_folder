@@ -16,19 +16,13 @@ namespace py = pybind11;
 
 
 
-void enable_fpe() {
-    unsigned int current;
-    _controlfp_s(&current, 0, 0);        // get current control word
-    _controlfp_s(&current, 0, _MCW_EM);  // clear all exception masks
-    _controlfp_s(&current, ~_EM_INVALID & ~_EM_ZERODIVIDE & ~_EM_OVERFLOW, _MCW_EM); 
-    // Enable invalid, divide-by-zero, overflow traps
-}
+
 PYBIND11_MODULE(physics, m) {
    
     m.doc() = "2D physics engine";
     py::class_<Shape, std::shared_ptr<Shape>>(m, "Shape"),
     py::class_<Polygon, Shape, std::shared_ptr<Polygon>>(m, "Polygon")
-    .def(py::init<int, double, double, double, int, double, double, double>(),
+    .def(py::init<int, double, double, double, double, double, double, double, bool>(),
          py::arg("vertices") = 4,
          py::arg("vx") = 0,
          py::arg("center_x") = 400,
@@ -36,7 +30,8 @@ PYBIND11_MODULE(physics, m) {
          py::arg("length") = 110,
          py::arg("omega") = -3,
          py::arg("angle") = 0,
-         py::arg("mass") = 25)
+         py::arg("mass") = 25,
+         py::arg("static") = false)
     .def("initialize_self_vector", &Polygon::initialize_self_vector)
         .def("apply_motion", &Polygon::apply_motion)
         .def("clamp_motion", &Polygon::clamp_motion)
@@ -62,15 +57,17 @@ PYBIND11_MODULE(physics, m) {
         .def_readonly("aabb", &Polygon::aabb)
         .def_readonly("num_times_sleepy", &Polygon::num_times_sleepy)
         .def_readonly("length", &Polygon::length)
-        .def_readwrite("world_vertices", &Polygon::world_vertices);
+        .def_readwrite("world_vertices", &Polygon::world_vertices)
+        .def_readwrite("static", &Polygon::static_body);
         
         py::class_<CompoundShape, Shape, std::shared_ptr<CompoundShape>>(m, "CompoundShape")
-        .def(py::init<std::vector<std::shared_ptr<Shape>>, int, double, double, double>(),
+        .def(py::init<std::vector<std::shared_ptr<Shape>>, int, double, double, double, bool>(),
              py::arg("children"),
              py::arg("vertices") = 4,
              py::arg("vx") = 0,
              py::arg("omega") = -3,
-             py::arg("angle") = 0)
+             py::arg("angle") = 0,
+             py::arg("static") = false)
             
             
     
@@ -88,6 +85,8 @@ PYBIND11_MODULE(physics, m) {
             .def_readwrite("sleep", &CompoundShape::sleep)
             .def_readwrite("draw_animation", &CompoundShape::draw_animation)
             .def_readwrite("collided", &CompoundShape::collided)
+            .def_readwrite("mass", &CompoundShape::mass)
+            .def_readwrite("inertia", &CompoundShape::inertia)
     
             .def_readwrite("remove", &CompoundShape::remove)
             .def_readwrite("name", &CompoundShape::name)
@@ -95,8 +94,14 @@ PYBIND11_MODULE(physics, m) {
             .def_readonly("num_times_sleepy", &CompoundShape::num_times_sleepy)
             .def_readonly("length", &CompoundShape::length)
             .def_readwrite("world_vertices", &CompoundShape::world_vertices);
-        py::class_<PolygonManager>(m, "PolygonManager")
-            .def(py::init<std::shared_ptr<PolygonCollisions>>())
+            py::class_<PolygonManager, std::shared_ptr<PolygonManager>>(m, "PolygonManager")
+            .def(py::init<
+                std::shared_ptr<PolygonCollisions>,
+                std::shared_ptr<PendulumSolver>
+            >(),
+                py::arg("collision_system"),
+                py::arg("pendulum_solver")
+            )
             .def("add_polygon", &PolygonManager::add_polygon)
             .def("remove_polygon", &PolygonManager::remove_polygon)
             .def("step", &PolygonManager::step);
@@ -113,7 +118,7 @@ PYBIND11_MODULE(physics, m) {
         .def_readwrite("min_y", &AABB::min_y)
         .def_readwrite("max_y", &AABB::max_y);
     py::class_<Rectangle, Polygon, std::shared_ptr<Rectangle>>(m, "Rectangle")
-        .def(py::init<int, double, double, double, int, int, double, double, double>(),
+        .def(py::init<int, double, double, double, double, double, double, double, double, bool>(),
             py::arg("vertices") = 4,
             py::arg("vx") = 0,
             py::arg("center_x") = 400,
@@ -122,8 +127,14 @@ PYBIND11_MODULE(physics, m) {
             py::arg("width") = 70,
             py::arg("omega") = -3,
             py::arg("angle") = 0,  
-            py::arg("mass") = 25
-        );
+            py::arg("mass") = 25,
+            py::arg("static") = false
+        )
+        
+        .def_readwrite("width", &Rectangle::width)
+        .def_readwrite("mass", &Rectangle::mass)
+        .def_readwrite("local_center_x", &Rectangle::local_center_x)
+        .def_readwrite("local_center_y", &Rectangle::local_center_y);
     py::class_<IsoscelesTriangle, Polygon, std::shared_ptr<IsoscelesTriangle>>(m, "IsoscelesTriangle")
     .def(py::init<int, double, double, double, int, int, double, double, double>(),
             py::arg("vertices") = 4,
@@ -135,8 +146,48 @@ PYBIND11_MODULE(physics, m) {
             py::arg("omega") = -3,
             py::arg("angle") = 0,  
             py::arg("mass") = 25
+            
         )
-        
+    
         .def_readwrite("width", &IsoscelesTriangle::width);
-        
+        py::class_<Joint, std::shared_ptr<Joint>>(m, "Joint");
+        py::class_<PendulumJoint, Joint, std::shared_ptr<PendulumJoint>>(m, "PendulumJoint")
+    .def(py::init<Vec2, Vec2, std::shared_ptr<Shape>>())
+    .def("update_local_anchor", &PendulumJoint::update_local_anchor)
+    .def_readwrite("rigid_body", &PendulumJoint::rigid_body)
+    .def_readwrite("body_anchor", &PendulumJoint::body_anchor)
+    .def_readwrite("world_anchor", &PendulumJoint::world_anchor)
+    .def_readwrite("rope_length", &PendulumJoint::rope_length);
+
+py::class_<DynamicJoint, Joint, std::shared_ptr<DynamicJoint>>(m, "DynamicJoint")
+    .def(py::init<Vec2, Vec2, std::shared_ptr<Shape>, std::shared_ptr<Shape>>())
+    .def("update_local_anchor", &DynamicJoint::update_local_anchor)
+    .def_readwrite("rigid_body1", &DynamicJoint::rigid_body1)
+    .def_readwrite("rigid_body2", &DynamicJoint::rigid_body2)
+    .def_readwrite("body_anchor1", &DynamicJoint::body_anchor1)
+    .def_readwrite("body_anchor2", &DynamicJoint::body_anchor2)
+    .def_readwrite("rope_length", &DynamicJoint::rope_length);
+
+
+py::class_<SoftJoint, Joint, std::shared_ptr<SoftJoint>>(m, "SoftJoint")
+    .def(py::init<Vec2, Vec2, std::shared_ptr<Shape>, std::shared_ptr<Shape>, double>())
+    .def("update_local_anchor", &SoftJoint::update_local_anchor)
+    .def_readwrite("rigid_body1", &SoftJoint::rigid_body1)
+    .def_readwrite("rigid_body2", &SoftJoint::rigid_body2)
+    .def_readwrite("body_anchor1", &SoftJoint::body_anchor1)
+    .def_readwrite("body_anchor2", &SoftJoint::body_anchor2)
+    .def_readwrite("rope_length", &SoftJoint::rope_length)
+    .def_readwrite("k", &SoftJoint::k);
+
+    py::class_<PendulumSolver, std::shared_ptr<PendulumSolver>>(m, "PendulumSolver")
+    .def(py::init<>())
+    .def_readwrite("joints", &PendulumSolver::joints)
+    .def("add_joint",
+        [](PendulumSolver& self, std::shared_ptr<Joint> joint) {
+            self.joints.push_back(joint);
+        }
+    )
+
+    .def("solve", &PendulumSolver::iterative_solver)
+    .def("remove_rigid_body", &PendulumSolver::remove_rigid_body);
 }

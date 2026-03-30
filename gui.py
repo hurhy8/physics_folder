@@ -49,6 +49,7 @@ def create_star(mx, my, length, mass):
                                 vertices=sum(len(c.world_vertices) for c in children2),
                                 vx=00, omega=0, angle=0)
     shape2.angle = (math.pi/1.5 * (len(shape2.world_vertices) - 2))/(2*len(shape2.world_vertices))
+    print("INERTIA:", shape2.inertia)
     return shape2
 
 pygame.init()

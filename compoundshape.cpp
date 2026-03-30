@@ -60,7 +60,7 @@ void CompoundShape::clamp_motion(){
     
     if (std::abs(vx) < 1e-6) vx = 0;
     if (std::abs(vy) < 1e-6) vy = 0;
-    omega *= std::exp(-0.65 * dt);
+    //omega *= std::exp(-0.65 * dt);
     
     if (!std::isfinite(omega)) omega = 0.0;
     //omega = std::max(std::min(omega, 3.5), -3.5);
@@ -99,7 +99,7 @@ void CompoundShape::apply_rotation(Vec2 lever_arm_r, double Jx, double Jy){
     if (torque_impulse < 0){
         effective_inertia /= 1.0;
     }
-    double omega_change = torque_impulse/effective_inertia* 10;
+    double omega_change = (torque_impulse/effective_inertia);
     omega += omega_change;
 }
 
@@ -129,9 +129,10 @@ bool CompoundShape::aabb_overlap(const AABB& a, const AABB& b) {
 
 void CompoundShape::impulse_resolution(Vec2 MTV, Vec2 segment_edge,
     std::pair<Vec2, Vec2> segment_vertices, std::vector<Vec2> manifold){
-        vx *= 0.99;
-        vy *= 0.99;
 
+        double correction_fraction = 1;
+        center_x += MTV.x * correction_fraction;
+        center_y += MTV.y * correction_fraction;
         double seg_mag = std::hypot(segment_edge.x, segment_edge.y);
         double seg_nx = -segment_edge.y / seg_mag;
         double seg_ny = segment_edge.x / seg_mag;
@@ -170,7 +171,7 @@ void CompoundShape::impulse_resolution(Vec2 MTV, Vec2 segment_edge,
 
             double local_e = collision_elasticity * t_;
             double r_cross_n = lever_arm_x * seg_ny - lever_arm_y * seg_nx;
-            double denom = (1.0/mass) + (r_cross_n*r_cross_n)/inertia * 10;
+            double denom = (1.0/mass) + (r_cross_n*r_cross_n)/inertia;
             impulse_scalar = (-(1.0 + local_e) * vel_along_normal)/denom;
         
             double Jx = (impulse_scalar) * seg_nx;
@@ -183,24 +184,29 @@ void CompoundShape::impulse_resolution(Vec2 MTV, Vec2 segment_edge,
 
             double mu_k = 0.3;
             double mu_s = 0.35;
-            double dot = vx * seg_nx + vy * seg_ny;
-            Vec2 vn = Vec2(dot * seg_nx, dot * seg_ny);
+            
+            v_rot_x = -omega * lever_arm_y;
+            v_rot_y = omega * lever_arm_x;
+            v_contact_x = vx + v_rot_x;
+            v_contact_y = vy + v_rot_y;
+            vel_along_normal = v_contact_x * seg_nx + v_contact_y * seg_ny;
+            Vec2 vn = Vec2(vel_along_normal * seg_nx, vel_along_normal * seg_ny);
             //tangentional velocity
-            Vec2 vt = Vec2(vx - vn.x, vy - vn.y);
-            double vt_mag = std::sqrt(vt.x * vt.x + vt.y * vt.y);
-            if (vt_mag == 0){
-                vt_mag = 1e-6;
-            }
-            Vec2 t = Vec2(vt.x/vt_mag, vt.y/vt_mag);
+            Vec2 t = Vec2(-seg_ny, seg_nx);
+            double vt_dot = v_contact_x * t.x + v_contact_y *t.y;
+            Vec2 vt = Vec2(vt_dot * t.x,  vt_dot *t.y);
+
+            
             double j_mag = (std::sqrt(Jx * Jx + Jy *Jy));
             double r_cross_t = lever_arm_x * t.y - lever_arm_y * t.x;
             
-            double denom_t = (1.0/mass) + (r_cross_t * r_cross_t)/inertia * 10;
+            double denom_t = (1.0/mass) + (r_cross_t * r_cross_t)/inertia;
             
             double full_denom = denom_t;
-            double static_jt_unclamped = -vt_mag/full_denom;
+            double static_jt_unclamped = -vt_dot/full_denom;
             double limit = mu_s * j_mag;
             double jt;
+            jt = std::clamp( + static_jt_unclamped, -limit, limit);
             if (std::abs(static_jt_unclamped) <= limit){
                 jt = static_jt_unclamped;
             }
@@ -218,9 +224,7 @@ void CompoundShape::impulse_resolution(Vec2 MTV, Vec2 segment_edge,
 
         
         
-        double correction_fraction = 1;
-        center_x += MTV.x * correction_fraction;
-        center_y += MTV.y * correction_fraction;
+
         }
 
 
@@ -272,7 +276,7 @@ void CompoundShape::impulse_resolution(Vec2 MTV, Vec2 segment_edge,
 
 
     void CompoundShape::apply_force(double dt){
-        vy += (gravity * 100) * dt;
+        vy += (gravity) * dt;
     }
     void CompoundShape::apply_motion(double dt){
         center_x += vx * dt;

@@ -6,9 +6,19 @@
 #include <algorithm>
 #include <functional>
 std::vector<Vec2> Polygon::calculate_vertices_and_inertia(){
-    if (vertices < 3) throw std::runtime_error("Polygon must have at least 3 vertices");
-    if (mass <= 0) throw std::runtime_error("Polygon mass must be positive");
-    if (length <= 0) throw std::runtime_error("Polygon length must be positive");
+    if (vertices < 3){
+        remove = true;
+        throw std::runtime_error("Polygon must have at least 3 vertices");
+    } 
+    if (mass <= 0){
+        remove = true;
+        throw std::runtime_error("Polygon mass must be positive");
+    } 
+    if (length <= 0){
+        remove = true;
+        throw std::runtime_error("Polygon length must be positive");
+    } 
+   
     inertia = 0;
     std::vector<Vec2> vertex_points = {};
     double radius = length/(2*std::sin(PI/vertices));
@@ -17,15 +27,18 @@ std::vector<Vec2> Polygon::calculate_vertices_and_inertia(){
         double y =  radius * std::sin((2*PI*i)/vertices + angle);
         vertex_points.push_back(Vec2(x, y));
     }
-    if (vertices > 4){
+    if (vertices > 4 && vertices <16){
         inertia = (0.5 * mass * radius * radius * (std::sin(2*PI/vertices)/
-        (2 * PI / vertices))) *100;
+        (2 * PI / vertices)) * 2);
+    }
+    else if (vertices >= 16){
+        inertia = (mass * radius * radius) * 2;
     }
     else if (vertices == 4){
-        inertia = ((mass * length * length)/6) *100;
+        inertia = ((mass * length * length)/6) * 2;
     }
     else if (vertices == 3){
-        inertia = ((mass * length * length)/12) *100;
+        inertia = ((mass * length * length)/12) * 2;
     }
 
     return vertex_points;
@@ -37,7 +50,16 @@ std::vector<Vec2> Rectangle::calculate_vertices_and_inertia()  {
     Vec2 v2 = Vec2( + width/2,  - length/2);
     Vec2 v3 = Vec2( + width/2,  + length/2);
     Vec2 v4 = Vec2( - width/2,  + length/2);
-    inertia= ((1.0/12.0 * mass * length * length) + (1.0/12.0 * mass * width * width)) * 100;
+    float cos_a = cos(angle);
+    float sin_a = sin(angle);
+
+    // Rotate each vertex
+    v1 = Vec2(v1.x * cos_a - v1.y * sin_a, v1.x * sin_a + v1.y * cos_a);
+    v2 = Vec2(v2.x * cos_a - v2.y * sin_a, v2.x * sin_a + v2.y * cos_a);
+    v3 = Vec2(v3.x * cos_a - v3.y * sin_a, v3.x * sin_a + v3.y * cos_a);
+    v4 = Vec2(v4.x * cos_a - v4.y * sin_a, v4.x * sin_a + v4.y * cos_a);
+    
+    inertia= ((1.0/12.0 * mass * length * length) + (1.0/12.0 * mass * width * width)) * 2;
     
     return {v1, v2, v3, v4};
 }
@@ -48,10 +70,8 @@ bool Rectangle::aabb_overlap(const AABB& a, const AABB& b) {
 void Rectangle::apply_rotation(Vec2 lever_arm_r, double Jx, double Jy){
     double torque_impulse = lever_arm_r.x * Jy - lever_arm_r.y * Jx;
     double effective_inertia = inertia;
-    if (torque_impulse < 0){
-        effective_inertia /= 1.225;
-    }
-    double omega_change = torque_impulse/effective_inertia*10;
+
+    double omega_change = torque_impulse/effective_inertia;
     omega += omega_change;
 }
 
@@ -74,7 +94,7 @@ std::vector<Vec2> IsoscelesTriangle::calculate_vertices_and_inertia()  {
         v3.x * std::cos(angle) - v3.y * std::sin(angle),
         v3.x * std::sin(angle) + v3.y * std::cos(angle)
     );
-    inertia= ((mass/36) * (width*width + length*length)) * 100;
+    inertia= ((mass/36) * (width*width + length*length));
     
     return {v1_rot, v2_rot, v3_rot};
 }
@@ -85,9 +105,7 @@ bool IsoscelesTriangle::aabb_overlap(const AABB& a, const AABB& b) {
 void IsoscelesTriangle::apply_rotation(Vec2 lever_arm_r, double Jx, double Jy){
     double torque_impulse = lever_arm_r.x * Jy - lever_arm_r.y * Jx;
     double effective_inertia = inertia;
-    if (torque_impulse < 0){
-        effective_inertia /= 1.225;
-    }
+
     double omega_change = torque_impulse/effective_inertia;
     omega += omega_change;
 }
@@ -146,12 +164,12 @@ std::tuple<bool, Vec2, std::vector<Vec2>>Polygon::x_boundaries(Vec2 segment_edge
 std::tuple<bool, Vec2, std::vector<Vec2>> Polygon::y_boundaries(Vec2 segment_edge, 
     std::pair<Vec2, Vec2> segment_vertices,    double boundary,
     std::function<bool(double, double)> comparator, BoundaryType side){
+
         edge_coordinates.clear();
         for (size_t i = 0; i < vertices; i++) {
             std::pair<Vec2, Vec2> edge = {world_vertices[i], world_vertices[(i + 1) % vertices]};
             edge_coordinates.push_back(edge);
         } 
-        
 
 
         
@@ -277,10 +295,11 @@ void Polygon::clamp_motion(){
     
     if (std::abs(vx) < 1e-6) vx = 0;
     if (std::abs(vy) < 1e-6) vy = 0;
-    omega *= std::exp(-0.65 * dt);
-    
+    //omega *= std::exp(-0.05 * dt);
+    omega *= 0.99995;
+        
     if (!std::isfinite(omega)) omega = 0.0;
-    omega = std::max(std::min(omega, 3.5), -3.5);
+    //omega = std::max(std::min(omega, 3.5), -3.5);
 }
 
 bool Polygon::is_flat(double angle, std::vector<double> flat_angles, double tolerance){
@@ -295,28 +314,21 @@ bool Polygon::is_flat(double angle, std::vector<double> flat_angles, double tole
 
 void Polygon::put_to_sleep(){
     
-    double velocity_magnitude = std::sqrt(vx * vx + vy * vy + (length/2 * omega) * (length/2 * omega));
-    
-    if (velocity_magnitude < 20 && !sleep) {
+    double linear_magnitude = std::sqrt(vx * vx + vy * vy);
+    double angular_mag = std::sqrt((length/2 * omega) * (length/2 * omega));
+    if ((linear_magnitude < 0.5 && angular_mag < 0.02) && !sleep && !static_body) {
         ++num_times_sleepy;
     }
     else{
         num_times_sleepy = 0;
     }
-    if ((num_times_sleepy > 720 || sleep) && allow_motion){
-        
-        double new_angle = (PI * (vertices - 2))/(2*vertices); 
-        //std::cout << std::abs(new_angle - angle) << "\n";
-        
-        if (!std::abs(new_angle - angle) < 0.174533){ 
-            //angle = new_angle;
-            sleep = true;
-            gravity = 0;
-            vy = 0;
-            vx = 0;
-            omega = 0; }
-        
+    if ((num_times_sleepy > 500 || sleep) && allow_motion){
 
+        sleep = true;
+        gravity = 0;
+        vy = 0;
+        vx = 0;
+        omega = 0; 
     }
 }
 
@@ -325,25 +337,33 @@ std::vector<Vec2> Polygon::build_contact_manifold(Vec2 seg_a, Vec2 seg_b,
         double mag = std::sqrt(seg_normal.x * seg_normal.x + seg_normal.y * seg_normal.y);
         Vec2 normal = Vec2(seg_normal.x/mag, seg_normal.y/mag);
         std::vector<Vec2> raw_contacts = {};
-        for (auto vertices : polygon_edges){
-            Vec2 vi = vertices.first;
-            Vec2 vj = vertices.second;
-            Vec2 di = closest_point_on_segment(seg_a, seg_b, vi);
-            Vec2 dj = closest_point_on_segment(seg_a, seg_b, vj);
-            double dx_i = vi.x - di.x;
-            double dy_i = vi.y - di.y;
-            double dist_i = dx_i * normal.x + dy_i * normal.y;
-
-            double dx_j = vj.x - dj.x;
-            double dy_j = vj.y - dj.y;
-            double dist_j = dx_j * normal.x + dy_j * normal.y;
-            if (dist_i < 0){
-                raw_contacts.push_back(vi);
+        
+            if (polygon_edges.size() < 16){
+                for (auto vertices : polygon_edges){
+                Vec2 vi = vertices.first;
+                Vec2 vj = vertices.second;
+                Vec2 di = closest_point_on_segment(seg_a, seg_b, vi);
+                Vec2 dj = closest_point_on_segment(seg_a, seg_b, vj);
+                double dx_i = vi.x - di.x;
+                double dy_i = vi.y - di.y;
+                double dist_i = dx_i * normal.x + dy_i * normal.y;
+    
+                double dx_j = vj.x - dj.x;
+                double dy_j = vj.y - dj.y;
+                double dist_j = dx_j * normal.x + dy_j * normal.y;
+                if (dist_i < 0){
+                    raw_contacts.push_back(vi);
+                }
+                if (dist_j < 0){
+                    raw_contacts.push_back(vj);
+                }
             }
-            if (dist_j < 0){
-                raw_contacts.push_back(vj);
+        }
+            else{
+                Vec2 seg_point = closest_point_on_segment(seg_a, seg_b, Vec2(center_x, center_y));
+                return {seg_point};
             }
-    }
+           
     std::vector<Vec2> unique = {};
     auto close = [epsilon] (Vec2 a, Vec2 b){
         return (std::abs(a.x - b.x) <= epsilon && std::abs(a.y - b.y) <= epsilon);
@@ -381,9 +401,9 @@ void Polygon::apply_rotation(Vec2 lever_arm_r, double Jx, double Jy){
     double torque_impulse = lever_arm_r.x * Jy - lever_arm_r.y * Jx;
     double effective_inertia = inertia;
     if (torque_impulse < 0){
-        effective_inertia /= 1.225;
+        
     }
-    double omega_change = torque_impulse/effective_inertia * 10;
+    double omega_change = torque_impulse/effective_inertia;
     omega += omega_change;
 }
 void Polygon::update_aabb() {
@@ -405,10 +425,9 @@ bool Polygon::aabb_overlap(const AABB& a, const AABB& b) {
 }
 void Polygon::impulse_resolution(Vec2 MTV, Vec2 segment_edge,
     std::pair<Vec2, Vec2> segment_vertices, std::vector<Vec2> manifold){
-        vx *= 0.99;
-        vy *= 0.99;
         center_x += MTV.x;
         center_y += MTV.y;
+
         double seg_mag = std::hypot(segment_edge.x, segment_edge.y);
         double seg_nx = -segment_edge.y / seg_mag;
         double seg_ny = segment_edge.x / seg_mag;
@@ -418,10 +437,20 @@ void Polygon::impulse_resolution(Vec2 MTV, Vec2 segment_edge,
             seg_nx *= -1;
             seg_ny *= -1;
         }
+        double lever_arm_x = 0;
+        double lever_arm_y = 0;
+        for (auto& pt : manifold){
+            lever_arm_x += pt.x - center_x ;
+            lever_arm_y += pt.y - center_y ;
+        }
+        if (manifold.size() == 0){
+            return;
+        }
+        lever_arm_x /= manifold.size();
+        lever_arm_y /= manifold.size();
+    
+        
 
-        for (auto closest_point : manifold){
-            double lever_arm_x = closest_point.x - center_x;
-            double lever_arm_y = closest_point.y - center_y;
             double v_rot_x = -omega * lever_arm_y;
             double v_rot_y = omega * lever_arm_x;
             double v_contact_x = vx + v_rot_x;
@@ -429,15 +458,23 @@ void Polygon::impulse_resolution(Vec2 MTV, Vec2 segment_edge,
             double vel_along_normal = v_contact_x * seg_nx + v_contact_y * seg_ny;
 
             if (vel_along_normal > 0){
-                continue;
+
+                return;
             }
             double epsilon = 0.001;
             double impulse_scalar;
 
-            double v0 = 0.0; double v1 = 1.0;
-            double t_ = std::max(0.0, std::min(1.0, -vel_along_normal) - ( v0/v1 - v0));
+            
+            
 
-            double local_e = collision_elasticity * t_;
+          
+
+            double local_e = elasticity;
+            
+            if (vel_along_normal >-0.2){
+                local_e = 0;
+            }
+            //std::cout << "elasticity: " << local_e << "\n";
             double r_cross_n = lever_arm_x * seg_ny - lever_arm_y * seg_nx;
             double denom = (1.0/mass) + (r_cross_n*r_cross_n)/inertia;
             impulse_scalar = (-(1.0 + local_e) * vel_along_normal)/denom;
@@ -448,47 +485,49 @@ void Polygon::impulse_resolution(Vec2 MTV, Vec2 segment_edge,
             vy += Jy/mass;
             vx += Jx/mass;
             apply_rotation(Vec2(lever_arm_x, lever_arm_y), Jx, Jy);
+     
 
+            double mu_k = 0.5;
+            double mu_s = 0.6;
+             
 
-            double mu_k = 0.3;
-            double mu_s = 0.35;
-            double dot = vx * seg_nx + vy * seg_ny;
-            Vec2 vn = Vec2(dot * seg_nx, dot * seg_ny);
+            
+            Vec2 vn = Vec2(vel_along_normal * seg_nx, vel_along_normal * seg_ny);
             //tangentional velocity
-            Vec2 vt = Vec2(vx - vn.x, vy - vn.y);
-            double vt_mag = std::sqrt(vt.x * vt.x + vt.y * vt.y);
-            if (vt_mag == 0){
-                vt_mag = 1e-6;
-            }
-            Vec2 t = Vec2(vt.x/vt_mag, vt.y/vt_mag);
+            Vec2 t = Vec2(seg_ny, -seg_nx);
+            double vt_dot = v_contact_x * t.x + v_contact_y *t.y;
+         
             double j_mag = (std::sqrt(Jx * Jx + Jy *Jy));
             double r_cross_t = lever_arm_x * t.y - lever_arm_y * t.x;
             
             double denom_t = (1.0/mass) + (r_cross_t * r_cross_t)/inertia ;
             
             double full_denom = denom_t;
-            double static_jt_unclamped = -vt_mag/full_denom;
+            double static_jt_unclamped = -vt_dot/full_denom;
             double limit = mu_s * j_mag;
             double jt;
-            if (std::abs(static_jt_unclamped) <= limit){
+            
+            if (abs(static_jt_unclamped) < limit)
                 jt = static_jt_unclamped;
-            }
-            else{
-                jt = mu_k * j_mag;
-                jt *= static_jt_unclamped > 0 ? (1) : (-1);
-            }
+            else
+                jt = -mu_k * j_mag * std::copysign(1.0, vt_dot);
             double jtx = jt * t.x;
             double jty = jt * t.y;
             vx += jtx/ mass;
             vy += jty/ mass;
+          //  std::cout << "Omega before: " << omega << "\n";
             apply_rotation(Vec2(lever_arm_x, lever_arm_y), jtx, jty);
+          //  std::cout << "Omega after: " << omega << "\n";
+  
 
 
 
         }
         
 
-    }
+        
+
+    
 void Polygon::update_world_vertices(){
     angle = std::fmod(angle, (2 * PI));
     double cos_a = std::cos(angle);
@@ -497,6 +536,11 @@ void Polygon::update_world_vertices(){
     for (auto lv : local_vertices){
         double dx = lv.x - local_center_x;
         double dy = lv.y - local_center_y;
+        double r = std::sqrt(dx * dx + dy * dy);
+        
+        
+        //double rx = r * std::cos(angle);
+        //double ry = r * std::sin(angle);
         double rx = dx*cos_a-dy*sin_a;
         double ry = dx*sin_a+dy*cos_a;
         double wx = rx + center_x;
@@ -513,7 +557,7 @@ void Polygon::update_world_vertices(){
 
 }
 void Polygon::apply_force(double dt){
-    vy += (gravity * 100) * dt;
+    vy += (gravity) * dt;
 }
 void Polygon::apply_motion(double dt){
     center_x += vx * dt;
@@ -544,7 +588,7 @@ void Polygon::boundary_wall(Vec2 segv1, Vec2 segv2, std::function<bool(double, d
     }
     std::tie(collided, MTV, manifold) = result;
     if (collided){
-        
+        //std::cout << "COLLISION\n";
         impulse_resolution(MTV, segment_edge, segment_vert, manifold);
     }
 }
@@ -585,14 +629,18 @@ std::optional<std::pair<Rectangle, Rectangle>> Rectangle::fracture(double impuls
         std::pair<Vec2, Vec2> edge = {world_vertices[i], world_vertices[(i + 1) % vertices]};
         edge_coordinates.push_back(edge);
     }
-    double MPa = (impulse/(length* 1.0* width ));
+    double MPa = (std::abs(impulse)/(length* dt* width ));
+    //std::cout << "PRESSURE HIT: " << std::abs(MPa) << "\n";
+    //std::cout << "IMPULSE HIT: " << std::abs(impulse) << "\n";
     if (length < 12){
         return std::nullopt;
     }
-    Vec2 center_bottom;
-    Vec2 center_top;
-    Vec2 vector_top;
-    Vec2 vector_bottom;
+    Vec2 center1;
+    Vec2 center2;
+
+    double L1;
+    double L2;
+    bool width_fracture = false;
     if (MPa > fracture_threshold) {
         std::pair<Vec2, Vec2> edge_coord;
         
@@ -601,11 +649,14 @@ std::optional<std::pair<Rectangle, Rectangle>> Rectangle::fracture(double impuls
             // compute cross with the current edge
             Vec2 edge_length = Vec2(edge.first.x - edge.second.x, edge.first.y - edge.second.y);
             double edge_distance = std::sqrt(edge_length.x * edge_length.x + edge_length.y *edge_length.y);
-            double tolerance = 1e-3; // or some small fraction of width
-            if (std::abs(edge_distance - width) < tolerance) {
+            double tolerance = 1; // or some small fraction of width
+             //if (std::abs(edge_distance - width) <= 1.1) {
+             //   std::cout << "TRUE, LENGTH: " << std::abs(width) << "\n";
+             //   std::cout << "TRUE, EDGE: " << std::abs(edge_distance) << "\n";
                 
-                continue;
-            }
+           // }
+
+
                 Vec2 AB = Vec2(edge.second.x - edge.first.x, edge.second.y-edge.first.y);
                 Vec2 AP = Vec2(contact_point.x - edge.first.x, contact_point.y - edge.first.y);
                 double ab2 = AB.x * AB.x + AB.y*AB.y;
@@ -622,47 +673,90 @@ std::optional<std::pair<Rectangle, Rectangle>> Rectangle::fracture(double impuls
                 double dy = contact_point.y - closest.y;
                 double dist = std::sqrt(dx*dx + dy*dy);
             
-            if (std::abs(dist) < 1e-1) {
+            if (std::abs(dist) < 1e-3) {
+
                 edge_coord = edge; // assign the current edge
-                vector_top = Vec2(contact_point.x - edge_coord.first.x, contact_point.y - edge_coord.first.y);
-                vector_bottom = Vec2(contact_point.x - edge_coord.second.x, contact_point.y - edge_coord.second.y);
+               
+                Vec2 coord = Vec2(edge_coord.first.x - edge_coord.second.x, edge_coord.first.y - edge_coord.second.y);
+                double mag = std::sqrt(coord.x * coord.x + coord.y * coord.y);
+                Vec2 long_axis_direction = Vec2(coord.x/mag, coord.y/mag);
+                Vec2 contact_to_center = Vec2(contact_point.x - center_x, contact_point.y - center_y);
+                double dot_proj = contact_to_center.x * long_axis_direction.x + contact_to_center.y * long_axis_direction.y;
+                if (std::abs(edge_distance - length) <= 0.1){
+                    if (std::abs(dot_proj) > width/2){
+                        continue; }
+                    width_fracture = true;
+                    L1 = std::abs(width / 2.0 + dot_proj);
+                    L2 = std::abs(width / 2.0 - dot_proj);
+                    if (L1 < 3.5 || L2 < 3.5){
+                       // std::cout << "LENGTH IS TOO LONG\n";
+                        continue;
+                    }
+    
+                }
+                else{
+                    if (std::abs(dot_proj) > length/2){
+                        continue; }
+
+                    L1 = std::abs(length / 2.0 + dot_proj);
+                    L2 = std::abs(length / 2.0 - dot_proj);
+                    if (L1 < 3.5 || L2 < 3.5){
+                       // std::cout << "LENGTH IS TOO LONG\n";
+                        continue;
+                    }
+    
+                }
+
+                
+
+
+
+
+                Vec2 fracture_center = Vec2(center_x + long_axis_direction.x * dot_proj, center_y + long_axis_direction.y * dot_proj);
+
+                center1 = Vec2(fracture_center.x + long_axis_direction.x * (L1 / 2.0), fracture_center.y + long_axis_direction.y * (L1 / 2.0));
+                center2 = Vec2(fracture_center.x - long_axis_direction.x * (L2 / 2.0), fracture_center.y - long_axis_direction.y * (L2 / 2.0));
                 found_edge = true;
-        
-                center_top = Vec2(
-                    (contact_point.x + edge_coord.first.x) / 2.0,
-                    (contact_point.y + edge_coord.first.y) / 2.0
-                );
-        
-                center_bottom = Vec2(
-                    (contact_point.x + edge_coord.second.x) / 2.0,
-                    (contact_point.y + edge_coord.second.y) / 2.0
-                );
                 break;
             }
         }
-        if (!found_edge || length < 17) {
+        if (!found_edge) {
             
             return std::nullopt; // nothing to fracture
         }
           
         
        
-        double distance_top = std::sqrt(vector_top.x*vector_top.x + vector_top.y*vector_top.y);
 
+
+        double M1 = (mass *L1)/length;
+        double M2 = (mass * L2)/length;
         
-        
-        double distance_bottom = std::sqrt(vector_bottom.x*vector_bottom.x + vector_bottom.y*vector_bottom.y);
-        if (distance_bottom + distance_top > length + 1 || distance_bottom + distance_top < length -1){
-            return std::nullopt;
+        if (!width_fracture){
+            M1 = (mass *L1)/length;
+            M2 = (mass * L2)/length;
         }
-        if (distance_bottom < 0 || distance_top < 0){
-            return std::nullopt;
+        else{
+            M1 = (mass *L1)/width;
+            M2 = (mass * L2)/width;
         }
-        Rectangle rect1 = Rectangle(4, vx, center_top.x, center_top.y, distance_top,width, omega, angle);
+
+        Rectangle rect1;
+        Rectangle rect2;
+        if (width_fracture){
+            rect1 = Rectangle(4, vx*0.85, center1.x, center1.y, length,L1, omega, angle, M1);
         
-        Rectangle rect2 = Rectangle(4, vx, center_bottom.x, center_bottom.y, distance_bottom, width, -omega, angle);
+            rect2 = Rectangle(4, vx*0.85, center2.x, center2.y, length, L2, omega, angle, M2);
+        }
+        else{
+            rect1 = Rectangle(4, vx*0.85, center1.x, center1.y, L1,width, omega, angle, M1);
+        
+            rect2 = Rectangle(4, vx*0.85, center2.x, center2.y, L2, width, omega, angle, M2);
+        }
+        
         std::pair<Rectangle, Rectangle> new_rects = {rect1, rect2};
         return new_rects;
     }
     return std::nullopt;
+
 }
