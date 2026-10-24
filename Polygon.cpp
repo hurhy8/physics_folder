@@ -75,34 +75,32 @@ void Rectangle::apply_rotation(Vec2 lever_arm_r, double Jx, double Jy){
     omega += omega_change;
 }
 
-std::vector<Vec2> IsoscelesTriangle::calculate_vertices_and_inertia()  {
-    
-    Vec2 v1 = Vec2(0,0);
-    Vec2 v2 = Vec2(width, 0);
-    Vec2 v3 = Vec2(width/2, std::sqrt(length*length - (width/2) * (width/2)));
-    Vec2 v1_rot(
-        v1.x * std::cos(angle) - v1.y * std::sin(angle),
-        v1.x * std::sin(angle) + v1.y * std::cos(angle)
-    );
-    
-    Vec2 v2_rot(
-        v2.x * std::cos(angle) - v2.y * std::sin(angle),
-        v2.x * std::sin(angle) + v2.y * std::cos(angle)
-    );
-    
-    Vec2 v3_rot(
-        v3.x * std::cos(angle) - v3.y * std::sin(angle),
-        v3.x * std::sin(angle) + v3.y * std::cos(angle)
-    );
-    inertia= ((mass/36) * (width*width + length*length));
+std::vector<Vec2> RightTriangle::calculate_vertices_and_inertia()  {
+    float cos = std::cos(angle);
+    float sin = std::sin(angle);
+    Vec2 v1(-width / 3.0f, -length / 3.0f);
+    Vec2 v2( 2.0f * width / 3.0f, -length / 3.0f);
+    Vec2 v3(-width / 3.0f,  2.0f * length / 3.0f);
+
+    auto rotate = [&](const Vec2& v) {
+        return Vec2(
+            v.x * cos - v.y * sin,
+            v.x * sin + v.y * cos
+        );
+    };
+
+    Vec2 v1_rot = Vec2(rotate(v1).x , rotate(v1).y);
+    Vec2 v2_rot = Vec2(rotate(v2).x , rotate(v2).y);
+    Vec2 v3_rot = Vec2(rotate(v3).x , rotate(v3).y);
+    inertia= ((mass) * (width*width + length*length)/4.5);
     
     return {v1_rot, v2_rot, v3_rot};
 }
-bool IsoscelesTriangle::aabb_overlap(const AABB& a, const AABB& b) {
+bool RightTriangle::aabb_overlap(const AABB& a, const AABB& b) {
     return (a.min_x <= b.max_x && a.max_x >= b.min_x &&
             a.min_y <= b.max_y && a.max_y >= b.min_y);
 }
-void IsoscelesTriangle::apply_rotation(Vec2 lever_arm_r, double Jx, double Jy){
+void RightTriangle::apply_rotation(Vec2 lever_arm_r, double Jx, double Jy){
     double torque_impulse = lever_arm_r.x * Jy - lever_arm_r.y * Jx;
     double effective_inertia = inertia;
 
@@ -293,10 +291,9 @@ Vec2 Polygon::closest_point_on_segment(Vec2 seg_vert_1, Vec2 seg_vert_2, Vec2 P)
 
 void Polygon::clamp_motion(){
     
-    if (std::abs(vx) < 1e-6) vx = 0;
-    if (std::abs(vy) < 1e-6) vy = 0;
+
     //omega *= std::exp(-0.05 * dt);
-    omega *= 0.99995;
+    
         
     if (!std::isfinite(omega)) omega = 0.0;
     //omega = std::max(std::min(omega, 3.5), -3.5);
@@ -322,7 +319,7 @@ void Polygon::put_to_sleep(){
     else{
         num_times_sleepy = 0;
     }
-    if ((num_times_sleepy > 500 || sleep) && allow_motion){
+    if ((num_times_sleepy > 120 || sleep) && allow_motion){
 
         sleep = true;
         gravity = 0;
@@ -338,7 +335,7 @@ std::vector<Vec2> Polygon::build_contact_manifold(Vec2 seg_a, Vec2 seg_b,
         Vec2 normal = Vec2(seg_normal.x/mag, seg_normal.y/mag);
         std::vector<Vec2> raw_contacts = {};
         
-            if (polygon_edges.size() < 16){
+            if (polygon_edges.size() < 17 || (center_x == local_center_x && center_y == local_center_y)){
                 for (auto vertices : polygon_edges){
                 Vec2 vi = vertices.first;
                 Vec2 vj = vertices.second;
@@ -360,6 +357,7 @@ std::vector<Vec2> Polygon::build_contact_manifold(Vec2 seg_a, Vec2 seg_b,
             }
         }
             else{
+
                 Vec2 seg_point = closest_point_on_segment(seg_a, seg_b, Vec2(center_x, center_y));
                 return {seg_point};
             }
@@ -489,12 +487,37 @@ void Polygon::impulse_resolution(Vec2 MTV, Vec2 segment_edge,
 
             double mu_k = 0.5;
             double mu_s = 0.6;
-             
-
+            double jt;
             
-            Vec2 vn = Vec2(vel_along_normal * seg_nx, vel_along_normal * seg_ny);
+            v_rot_x = -omega * lever_arm_y;
+            v_rot_y = omega * lever_arm_x;
+            v_contact_x = vx + v_rot_x;
+            v_contact_y = vy + v_rot_y;
+            vel_along_normal = v_contact_x * seg_nx + v_contact_y * seg_ny;
+            Vec2 t = Vec2(
+                v_contact_x - seg_nx * vel_along_normal,
+                v_contact_y -seg_ny * vel_along_normal
+            );
+            
+            double len = std::sqrt(
+                t.x * t.x +
+                t.y * t.y
+            );
+            
+            if (len < 1e-8) {
+                return;
+                
+            }
+            else {
+                t.x /= len;
+                t.y /= len;
+            
+                // friction solve here
+            }
+            
+            
             //tangentional velocity
-            Vec2 t = Vec2(seg_ny, -seg_nx);
+            
             double vt_dot = v_contact_x * t.x + v_contact_y *t.y;
          
             double j_mag = (std::sqrt(Jx * Jx + Jy *Jy));
@@ -505,12 +528,12 @@ void Polygon::impulse_resolution(Vec2 MTV, Vec2 segment_edge,
             double full_denom = denom_t;
             double static_jt_unclamped = -vt_dot/full_denom;
             double limit = mu_s * j_mag;
-            double jt;
+            
             
             if (abs(static_jt_unclamped) < limit)
                 jt = static_jt_unclamped;
             else
-                jt = -mu_k * j_mag * std::copysign(1.0, vt_dot);
+                jt = std::clamp(static_jt_unclamped, -limit, limit);
             double jtx = jt * t.x;
             double jty = jt * t.y;
             vx += jtx/ mass;
@@ -538,11 +561,12 @@ void Polygon::update_world_vertices(){
         double dy = lv.y - local_center_y;
         double r = std::sqrt(dx * dx + dy * dy);
         
-        
-        //double rx = r * std::cos(angle);
-        //double ry = r * std::sin(angle);
-        double rx = dx*cos_a-dy*sin_a;
-        double ry = dx*sin_a+dy*cos_a;
+        double per_point_theta = std::atan2(dy, dx);
+        double new_theta = per_point_theta + angle;
+        double rx = r * std::cos(new_theta);
+        double ry = r * std::sin(new_theta);
+       // double rx = dx*cos_a-dy*sin_a;
+        //double ry = dx*sin_a+dy*cos_a;
         double wx = rx + center_x;
         double wy = ry + center_y;
         Vec2 actual_vert = Vec2(wx, wy);
@@ -589,7 +613,10 @@ void Polygon::boundary_wall(Vec2 segv1, Vec2 segv2, std::function<bool(double, d
     std::tie(collided, MTV, manifold) = result;
     if (collided){
         //std::cout << "COLLISION\n";
+
         impulse_resolution(MTV, segment_edge, segment_vert, manifold);
+        
+        
     }
 }
 void Polygon::wall(Vec2 segv1, Vec2 segv2){
@@ -624,15 +651,19 @@ void Polygon::wall(Vec2 segv1, Vec2 segv2){
 
 
 std::optional<std::pair<Rectangle, Rectangle>> Rectangle::fracture(double impulse, Vec2 contact_point, double fracture_threshold){
+    const int MAX_DEPTH = 1;
     edge_coordinates.clear();
     for (size_t i = 0; i < vertices; i++) {
         std::pair<Vec2, Vec2> edge = {world_vertices[i], world_vertices[(i + 1) % vertices]};
         edge_coordinates.push_back(edge);
     }
     double MPa = (std::abs(impulse)/(length* dt* width ));
-    //std::cout << "PRESSURE HIT: " << std::abs(MPa) << "\n";
+    //std::cout << "fracture_depth: " << fracture_depth << "\n";
     //std::cout << "IMPULSE HIT: " << std::abs(impulse) << "\n";
-    if (length < 12){
+    if (length < 0.07){
+        return std::nullopt;
+    }
+    if (fracture_depth > MAX_DEPTH){
         return std::nullopt;
     }
     Vec2 center1;
@@ -641,7 +672,9 @@ std::optional<std::pair<Rectangle, Rectangle>> Rectangle::fracture(double impuls
     double L1;
     double L2;
     bool width_fracture = false;
+    //std::cout << "RECTANGLE IMPACT MPA:" << MPa << "\n";
     if (MPa > fracture_threshold) {
+        //std::cout << "RECTANGLE IMPACT EXCEEDS FRACTURE THRESHOLD\n";
         std::pair<Vec2, Vec2> edge_coord;
         
         bool found_edge = false;
@@ -649,7 +682,7 @@ std::optional<std::pair<Rectangle, Rectangle>> Rectangle::fracture(double impuls
             // compute cross with the current edge
             Vec2 edge_length = Vec2(edge.first.x - edge.second.x, edge.first.y - edge.second.y);
             double edge_distance = std::sqrt(edge_length.x * edge_length.x + edge_length.y *edge_length.y);
-            double tolerance = 1; // or some small fraction of width
+            double tolerance = width * 0.05;// or some small fraction of width
              //if (std::abs(edge_distance - width) <= 1.1) {
              //   std::cout << "TRUE, LENGTH: " << std::abs(width) << "\n";
              //   std::cout << "TRUE, EDGE: " << std::abs(edge_distance) << "\n";
@@ -661,7 +694,7 @@ std::optional<std::pair<Rectangle, Rectangle>> Rectangle::fracture(double impuls
                 Vec2 AP = Vec2(contact_point.x - edge.first.x, contact_point.y - edge.first.y);
                 double ab2 = AB.x * AB.x + AB.y*AB.y;
                 double t = 0.0;
-                if (ab2 == 0){
+                if (std::abs(ab2) < 1e-8){
                     t = 0.0;
                 }
                 else{
@@ -673,22 +706,22 @@ std::optional<std::pair<Rectangle, Rectangle>> Rectangle::fracture(double impuls
                 double dy = contact_point.y - closest.y;
                 double dist = std::sqrt(dx*dx + dy*dy);
             
-            if (std::abs(dist) < 1e-3) {
+            if (std::abs(dist) < tolerance) {
 
                 edge_coord = edge; // assign the current edge
                
-                Vec2 coord = Vec2(edge_coord.first.x - edge_coord.second.x, edge_coord.first.y - edge_coord.second.y);
+                Vec2 coord = Vec2(edge_coord.first.x - edge_coord.second.x, edge_coord.first.y - edge_coord.second.y );
                 double mag = std::sqrt(coord.x * coord.x + coord.y * coord.y);
                 Vec2 long_axis_direction = Vec2(coord.x/mag, coord.y/mag);
                 Vec2 contact_to_center = Vec2(contact_point.x - center_x, contact_point.y - center_y);
                 double dot_proj = contact_to_center.x * long_axis_direction.x + contact_to_center.y * long_axis_direction.y;
-                if (std::abs(edge_distance - length) <= 0.1){
+                if (std::abs(edge_distance - length) >= 0.001){
                     if (std::abs(dot_proj) > width/2){
                         continue; }
                     width_fracture = true;
                     L1 = std::abs(width / 2.0 + dot_proj);
                     L2 = std::abs(width / 2.0 - dot_proj);
-                    if (L1 < 3.5 || L2 < 3.5){
+                    if (L1 < 0.07 || L2 < 0.07){
                        // std::cout << "LENGTH IS TOO LONG\n";
                         continue;
                     }
@@ -700,7 +733,7 @@ std::optional<std::pair<Rectangle, Rectangle>> Rectangle::fracture(double impuls
 
                     L1 = std::abs(length / 2.0 + dot_proj);
                     L2 = std::abs(length / 2.0 - dot_proj);
-                    if (L1 < 3.5 || L2 < 3.5){
+                    if ((L1 < 0.07 || L2 < 0.07)){
                        // std::cout << "LENGTH IS TOO LONG\n";
                         continue;
                     }
@@ -729,8 +762,8 @@ std::optional<std::pair<Rectangle, Rectangle>> Rectangle::fracture(double impuls
        
 
 
-        double M1 = (mass *L1)/length;
-        double M2 = (mass * L2)/length;
+        double M1;
+        double M2;
         
         if (!width_fracture){
             M1 = (mass *L1)/length;
@@ -743,17 +776,19 @@ std::optional<std::pair<Rectangle, Rectangle>> Rectangle::fracture(double impuls
 
         Rectangle rect1;
         Rectangle rect2;
+       
         if (width_fracture){
-            rect1 = Rectangle(4, vx*0.85, center1.x, center1.y, length,L1, omega, angle, M1);
+            rect1 = Rectangle(4, vx, center1.x, center1.y, length,L1, omega, angle, M1);
         
-            rect2 = Rectangle(4, vx*0.85, center2.x, center2.y, length, L2, omega, angle, M2);
+            rect2 = Rectangle(4, vx, center2.x, center2.y, length, L2, omega, angle, M2);
         }
         else{
-            rect1 = Rectangle(4, vx*0.85, center1.x, center1.y, L1,width, omega, angle, M1);
+            rect1 = Rectangle(4, vx, center1.x, center1.y, L1,width, omega, angle, M1);
         
-            rect2 = Rectangle(4, vx*0.85, center2.x, center2.y, L2, width, omega, angle, M2);
+            rect2 = Rectangle(4, vx, center2.x, center2.y, L2, width, omega, angle, M2);
         }
-        
+        rect1.fracture_depth =1 + fracture_depth;
+        rect2.fracture_depth =1 + fracture_depth;
         std::pair<Rectangle, Rectangle> new_rects = {rect1, rect2};
         return new_rects;
     }

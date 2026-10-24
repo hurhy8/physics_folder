@@ -1,0 +1,42 @@
+Date : 2026-04-03 00:55:34
+Directory : c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder
+Total : 15 files,  1282 codes, 127 comments, 370 blanks, all 1779 lines
+
+Languages
++----------+------------+------------+------------+------------+------------+
+| language | files      | code       | comment    | blank      | total      |
++----------+------------+------------+------------+------------+------------+
+| Python   |          8 |        676 |         62 |        155 |        893 |
+| C++      |          7 |        606 |         65 |        215 |        886 |
++----------+------------+------------+------------+------------+------------+
+
+Directories
++--------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                           | files      | code       | comment    | blank      | total      |
++--------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                              |         15 |      1,282 |        127 |        370 |      1,779 |
+| . (Files)                                                                      |         13 |      1,191 |        114 |        351 |      1,656 |
+| 3Dphysics                                                                      |          2 |         91 |         13 |         19 |        123 |
++--------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++--------------------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| filename                                                                       | language | code       | comment    | blank      | total      |
++--------------------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\3Dphysics\3dtester.py | Python   |         41 |         11 |          9 |         61 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\3Dphysics\sphere.py   | Python   |         50 |          2 |         10 |         62 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\Polygon.cpp           | C++      |         41 |         15 |         41 |         97 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\animation.py          | Python   |         14 |          0 |          2 |         16 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\compoundshape.cpp     | C++      |         -1 |          1 |          4 |          4 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\game_logic.py         | Python   |         13 |         -8 |          0 |          5 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\gui.py                | Python   |        186 |         27 |         33 |        246 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\hi.py                 | Python   |         -2 |          4 |          0 |          2 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\pendulum.cpp          | C++      |        163 |         18 |         76 |        257 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\physics.pyi           | Python   |         68 |          0 |         30 |         98 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\polygon.h             | C++      |        178 |         13 |         37 |        228 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\ppdetectres.cpp       | C++      |        162 |         13 |         40 |        215 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\pybindlink.cpp        | C++      |         46 |         -1 |          6 |         51 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\step.cpp              | C++      |         17 |          6 |         11 |         34 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\tester.py             | Python   |        306 |         26 |         71 |        403 |
+| Total                                                                          |          |      1,282 |        127 |        370 |      1,779 |
++--------------------------------------------------------------------------------+----------+------------+------------+------------+------------+

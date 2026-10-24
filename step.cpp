@@ -38,17 +38,17 @@ OptionalFractureVector PolygonManager::step(){
                         
                     compound->clamp_motion();
                     if (pendulum_class->joints.size() == 0){
-                        compound->put_to_sleep();
+                        
                     }
-                    
+                    compound->put_to_sleep();
                     //polygon->wall(Vec2(0, 0), Vec2(1700 - 1, 0));
-                    compound->boundary_wall(Vec2(0, 0), Vec2(-17, 0), [](double y, double boundary) { return y < boundary; }, BoundaryType::Left);
+                    //compound->boundary_wall(Vec2(0, 0), Vec2(-1699/(100.0 * 1.0), 0), [](double y, double boundary) { return y < boundary; }, BoundaryType::Left);
                                 
                                 
 
                     // Bottom wall (from left to right)
                     
-                    compound->boundary_wall(Vec2(0, 9), Vec2(17, 9), [](double y, double boundary) { return y > boundary; }, BoundaryType::Right);
+                    compound->boundary_wall(Vec2(0, 899/(100.0 * 1.0)), Vec2(1699/100.0, 899/(100.0 * 1.0)), [](double y, double boundary) { return y > boundary; }, BoundaryType::Right);
 
                     // Left wall (from top to bottom)
                     
@@ -57,7 +57,7 @@ OptionalFractureVector PolygonManager::step(){
                     // Right wall (from top to bottom)
                     
                     //polygon->wall(Vec2(1700 - 1, 0), Vec2(1700-1, 900 - 1));
-                    compound->boundary_wall(Vec2(17, 0), Vec2(17, 9), [](double x, double boundary) { return x > boundary; }, BoundaryType::Right);
+                    compound->boundary_wall(Vec2(1699/(100.0 * 1.0), 0), Vec2(1699/(100.0 * 1.0), 899/(100.0 * 1.0)), [](double x, double boundary) { return x > boundary; }, BoundaryType::Right);
                 
                 }
                 else{
@@ -88,8 +88,9 @@ OptionalFractureVector PolygonManager::step(){
                         
                             
                         poly->clamp_motion();
+                        poly->put_to_sleep();
                         if (pendulum_class->joints.size() == 0){
-                            poly->put_to_sleep();
+                            
                         }
                         //polygon->wall(Vec2(0, 0), Vec2(1700 - 1, 0));
                        // poly->boundary_wall(Vec2(0, 0), Vec2(1700 - 1, 0), [](double y, double boundary) { return y < boundary; }, BoundaryType::Left);
@@ -97,7 +98,7 @@ OptionalFractureVector PolygonManager::step(){
                         
     
                         // Bottom wall (from left to right)
-                        poly->boundary_wall(Vec2(0, 9), Vec2(17, 9), [](double y, double boundary) { return y > boundary; }, BoundaryType::Right);
+                        poly->boundary_wall(Vec2(0, 899/(100.0 * 1.0)), Vec2(1699/(100.0 * 1.0), 899/(100.0 * 1.0)), [](double y, double boundary) { return y > boundary; }, BoundaryType::Right);
                         
     
                         // Left wall (from top to bottom)
@@ -113,7 +114,7 @@ OptionalFractureVector PolygonManager::step(){
                         
                         //polygon->wall(Vec2(1700 - 1, 0), Vec2(1700-1, 900 - 1));
                         
-                        poly->boundary_wall(Vec2(17, 0), Vec2(17, 9), [](double x, double boundary) { return x > boundary; }, BoundaryType::Right);
+                        poly->boundary_wall(Vec2(1699/(100.0 * 1.0), 0), Vec2(1699/(100.0 * 1.0), 899/(100.0 * 1.0)), [](double x, double boundary) { return x > boundary; }, BoundaryType::Right);
                         
                     }
                     else{

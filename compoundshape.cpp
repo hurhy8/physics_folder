@@ -18,6 +18,7 @@ void CompoundShape::boundary_wall(Vec2 segv1, Vec2 segv2, std::function<bool(dou
 
     std::vector<Vec2> manifold;
     for (auto& child:child_polygons){
+        //std::cout << child->local_center_x << "\n";
         double EPSILON = 1e-6;
         auto poly_ptr = std::dynamic_pointer_cast<Polygon>(child);
         if (std::fabs(segment_edge.y) < EPSILON){
@@ -166,10 +167,11 @@ void CompoundShape::impulse_resolution(Vec2 MTV, Vec2 segment_edge,
             double epsilon = 0.001;
             double impulse_scalar;
 
-            double v0 = 0.0; double v1 = 1.0;
-            double t_ = std::max(0.0, std::min(1.0, -vel_along_normal) - ( v0/v1 - v0));
 
-            double local_e = collision_elasticity * t_;
+            double local_e= collision_elasticity;
+            if (vel_along_normal >-0.5){
+                local_e = 0;
+            }
             double r_cross_n = lever_arm_x * seg_ny - lever_arm_y * seg_nx;
             double denom = (1.0/mass) + (r_cross_n*r_cross_n)/inertia;
             impulse_scalar = (-(1.0 + local_e) * vel_along_normal)/denom;
@@ -249,6 +251,14 @@ void CompoundShape::impulse_resolution(Vec2 MTV, Vec2 segment_edge,
                 Vec2 actual_vert = Vec2(wx, wy);
                 world_vertices.push_back(actual_vert);
                 child->world_vertices.push_back(actual_vert);
+                double cx = child->local_center_x;
+                double cy = child->local_center_y;
+
+                double crx = cx * cos_a - cy * sin_a;
+                double cry = cx * sin_a + cy * cos_a;
+
+                child->center_x = crx + center_x;
+                child->center_y = cry + center_y;
         
             }
         }

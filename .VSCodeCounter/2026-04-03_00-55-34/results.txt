@@ -1,0 +1,47 @@
+Date : 2026-04-03 00:55:34
+Directory : c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder
+Total : 19 files,  5148 codes, 339 comments, 1624 blanks, all 7111 lines
+
+Languages
++----------+------------+------------+------------+------------+------------+
+| language | files      | code       | comment    | blank      | total      |
++----------+------------+------------+------------+------------+------------+
+| Python   |         11 |      2,870 |        193 |        951 |      4,014 |
+| C++      |          7 |      2,278 |        146 |        672 |      3,096 |
+| JSON     |          1 |          0 |          0 |          1 |          1 |
++----------+------------+------------+------------+------------+------------+
+
+Directories
++--------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                           | files      | code       | comment    | blank      | total      |
++--------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                              |         19 |      5,148 |        339 |      1,624 |      7,111 |
+| . (Files)                                                                      |         17 |      5,057 |        326 |      1,605 |      6,988 |
+| 3Dphysics                                                                      |          2 |         91 |         13 |         19 |        123 |
++--------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++--------------------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| filename                                                                       | language | code       | comment    | blank      | total      |
++--------------------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\3Dphysics\3dtester.py | Python   |         41 |         11 |          9 |         61 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\3Dphysics\sphere.py   | Python   |         50 |          2 |         10 |         62 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\Polygon.cpp           | C++      |        573 |         30 |        159 |        762 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\animation.py          | Python   |        102 |          2 |         24 |        128 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\bowmasters.py         | Python   |        860 |         49 |        361 |      1,270 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\chatgpt.py            | Python   |         34 |          4 |          6 |         44 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\compoundshape.cpp     | C++      |        217 |         10 |         61 |        288 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\game_logic.py         | Python   |        339 |         22 |        112 |        473 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\gui.py                | Python   |        471 |         30 |        115 |        616 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\gui_framework.py      | Python   |        162 |         12 |         39 |        213 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\hi.py                 | Python   |         54 |          9 |         64 |        127 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\pendulum.cpp          | C++      |        163 |         18 |         76 |        257 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\physics.pyi           | Python   |        189 |          3 |         44 |        236 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\polygon.h             | C++      |        471 |         16 |        112 |        599 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\ppdetectres.cpp       | C++      |        587 |         51 |        203 |        841 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\pybindlink.cpp        | C++      |        171 |          1 |         22 |        194 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\step.cpp              | C++      |         96 |         20 |         39 |        155 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\tester.py             | Python   |        568 |         49 |        167 |        784 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\theme.json            | JSON     |          0 |          0 |          1 |          1 |
+| Total                                                                          |          |      5,148 |        339 |      1,624 |      7,111 |
++--------------------------------------------------------------------------------+----------+------------+------------+------------+------------+

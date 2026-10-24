@@ -31,6 +31,7 @@ class Shape:
     collided: bool
     remove: bool
     edge_coordinates: List[Tuple[Vec2, Vec2]]
+    ignore_collisions: List[int]
     name: str
     
 
@@ -98,11 +99,11 @@ class Rectangle(Polygon):
     def __init__(self, vertices: int = 4, vx: float = 0, center_x: float = 400,
                  center_y: float = 0, length: int = 110, width=70, omega: float = 3,
                  angle: float = 0, mass: float = 25) -> None: ...
-class IsoscelesTriangle(Polygon):
+class RightTriangle(Polygon):
     def calculate_vertices_and_inertia(self) -> List[Vec2]: ...
     def put_to_sleep(self) -> None: ...
-    def __init__(self, vertices: int = 4, vx: float = 0, center_x: float = 400,
-                 center_y: float = 0, equal_side: int = 110, unique_side=70, omega: float = 3,
+    def __init__(self, vx: float = 0, center_x: float = 400,
+                 center_y: float = 0, equal_side: float = 110, unique_side=70, omega: float = 3,
                  angle: float = 0, mass: float = 25) -> None: ...
 class PolygonManager:
     polygons: List[Optional[Polygon]]
@@ -200,6 +201,28 @@ class DynamicJoint:
     def update_local_anchor(self, anchor: Vec2, shape: Shape) -> Vec2: ...
     
     def getRopeLength(self, body_to_world_anchor1: Vec2, body_to_world_anchor2: Vec2) -> float: ...
+class PivotJoint:
+    body_anchor1: Vec2
+    body_anchor2: Vec2
+    rope_length: float
+    initial_components: Vec2
+    rigid_body1: Shape
+    rigid_body2: Shape
+
+    def __init__(
+        self,
+        anchor1: Vec2,
+        anchor2: Vec2,
+        body: Shape,
+        body_other: Shape
+    ) -> None: ...
+    
+    def impulse_resolution(self) -> None: ...
+    
+    def relative_velocity(self, polygon: Shape, contact: Vec2) -> Tuple[float, float, Vec2]: ...
+    
+    def update_local_anchor(self, anchor: Vec2, shape: Shape) -> Vec2: ...
+
 
 
 class SoftJoint:

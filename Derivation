@@ -1,0 +1,35 @@
+Constraint impulse derivation
+
+we start with:
+
+C(q) = 0, where C is a constraint function.
+
+using the multivariable chain rule, we get
+
+C_dot(q) = (∂f/∂x) * v_x + v_y * (∂f/∂y) + (∂f/∂omega) * ... which can be generalized to:
+
+Jv+ + b = 0, where J is the Jacobian matrix of ∂C/∂q, v is the generalized velocities, and b is a correction factor.
+
+in addition, we also know that Δp = MΔv, or Δv = Δp/M, and that Δp = J^Tλ where λ is the impulse and J^T is the transpose of the Jacobian. Substituting we get:
+
+Δv = M^-1 J^T λ.
+
+Additionally, we know that v+ = Δv + v-. Substituting this into Jv+ + b = 0 yields:
+
+J(M^-1 J^T λ + v-) + b = 0.
+
+Expanding yields:
+
+JM^-1 J^T λ + Jv- + b = 0.
+
+Moving Jv- + b to the other side yields:
+
+JM^-1 J^T λ = -(Jv- + b).
+
+Because JM^-1 J^T results in a 1x1 scalar, because (1 * n)(nn)(n1) yields 1x1, we can divide, finally yielding us:
+
+λ = -(Jv- + b) / (JM^-1 J^T)
+
+for a 1 dimensional constraint. for any dimensional constraint above one, we leave the inverse mass calculation as an inverse, so:
+
+λ = (JM^-1 J^T)^-1 * -(Jv- + b)

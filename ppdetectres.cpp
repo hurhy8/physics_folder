@@ -5,7 +5,7 @@
 #include "polygon.h"
 #include <algorithm>
 #include <cassert>
-
+#include <ranges>
 
 std::vector<Vec2> PolygonCollisions::normal_computation(Shape& polygon){
     std::vector<Vec2> normals;
@@ -194,8 +194,54 @@ std::vector<ContactKey> PolygonCollisions::polygon_contact_points_other(Shape& p
         }
     }
 
+
+    std::vector<std::tuple<Vec2, int, int>> unique = {};
+    std::vector<std::tuple<Vec2, int, int>> raw_contacts = contacts;
+    auto close = [] (Vec2 a, Vec2 b){
+        return (std::abs(a.x - b.x) <= 1e-6 && std::abs(a.y - b.y) <= 1e-6);
+    };
+    for (auto contact : raw_contacts){
+        bool merged = false;
+        for (auto& uc : unique){
+            Vec2 unique_contact = std::get<0>(uc);
+            Vec2 raw_tact = std::get<0>(contact);
+            if (close(raw_tact, unique_contact)){
+                std::get<0>(uc) = Vec2((unique_contact.x  + raw_tact.x) * 0.5, (unique_contact.y + raw_tact.y) * 0.5);
+                merged = true;
+                break;
+            }
+
+        }
+        if (!merged){
+            unique.push_back(contact);
+        }
+
+    }
+    std::vector<std::tuple<Vec2, int, int>> chosen;
+    if (unique.size() > 2) {
+        double max_dist2 = -1.0;
+        std::tuple<Vec2, int, int> first, second;
+    
+        for (size_t i = 0; i < unique.size(); ++i) {
+            for (size_t j = i + 1; j < unique.size(); ++j) {
+                Vec2 a = std::get<0>(unique[i]);
+                Vec2 b = std::get<0>(unique[j]);
+                double dist2 = (a.x - b.x)*(a.x - b.x) + (a.y - b.y)*(a.y - b.y);
+                if (dist2 > max_dist2) {
+                    max_dist2 = dist2;
+                    first = unique[i];
+                    second = unique[j];
+                }
+            }
+        }
+        chosen.push_back(first);
+        chosen.push_back(second);
+    } else {
+        chosen = unique;
+    }
+    
     std::vector<ContactKey> contact_keys;
-    for (auto& [pt, poly_id, edge_index] : contacts) {
+    for (auto& [pt, poly_id, edge_index] : chosen) {
         // Each contact gets its own key
         contact_keys.push_back(ContactKey{polygon.id, polygon_other.id, -1, edge_index, pt});
     }
@@ -317,13 +363,13 @@ std::tuple<double, double, double, double> PolygonCollisions::impulse_resolution
     bool high_speed_collision = false;
     double bias;    
     double max_bias = 10000;
-    bias = ((0.3 * error)/dt);
+    bias = ((0.27 * error)/dt);
     
-    if (rel_vel < -0.0 || (error > 0.00)){
+    if (rel_vel < -0.0 || (error > 0.00         )){
 
         double e = restitution;
         
-        float threshold = -1.0;
+        float threshold = -0.5;
         float range = 1.0; // the range over which e goes from its max to 0
         float max_e = restitution; // or whatever e normally is
         
@@ -340,7 +386,7 @@ std::tuple<double, double, double, double> PolygonCollisions::impulse_resolution
             
 
         }
-        double impulse_scalar = -( (1 + e) * rel_vel - bias );
+        double impulse_scalar = -( (1+e) * rel_vel - bias );
         impulse_scalar /= (denom + denom_other);
         
         double jn_delta = impulse_scalar;
@@ -361,10 +407,28 @@ std::tuple<double, double, double, double> PolygonCollisions::impulse_resolution
 
         auto [v_contact_x, v_contact_y, lever_arm] = relative_velocity(*polygon, contact);
         auto [v_contact_x_other, v_contact_y_other, lever_arm_other] = relative_velocity(*polygon_other, contact);
-        rvx = v_contact_x_other - v_contact_x;
-        rvy = v_contact_y_other - v_contact_y;
-
-        Vec2 tangential_direction = Vec2(-normal.y, normal.x);
+        double rvx = v_contact_x_other - v_contact_x;
+        double rvy = v_contact_y_other - v_contact_y;
+        Vec2 tangential_direction = Vec2(
+            rvx - normal.x * rel_vel,
+            rvy - normal.y * rel_vel
+        );
+        
+        double len = std::sqrt(
+            tangential_direction.x * tangential_direction.x +
+            tangential_direction.y * tangential_direction.y
+        );
+        
+        if (len < 1e-12) {
+            jtx = 0;
+            jty = 0;
+        }
+        else {
+            tangential_direction.x /= len;
+            tangential_direction.y /= len;
+        
+            // friction solve here
+        }
         
 
         double mu_s =0.55;
@@ -392,7 +456,7 @@ std::tuple<double, double, double, double> PolygonCollisions::impulse_resolution
         if (count == 99){
             std::cout << "VREL: " << vt_rel << "\n";
         }
-        assert(abs(std::sqrt(tangential_direction.x * tangential_direction.x + tangential_direction.y * tangential_direction.y) - 1.0) < 1e-6);
+        //assert(abs(std::sqrt(tangential_direction.x * tangential_direction.x + tangential_direction.y * tangential_direction.y) - 1.0) < 1e-6);
         jtx = jt_delta * tangential_direction.x;
         jty = jt_delta * tangential_direction.y;
         
@@ -532,6 +596,13 @@ OptionalFractureVector PolygonCollisions::polygon_collisions(std::vector<std::sh
     
     for (auto& [poly1, poly2]: broad_phase){
         // Always get polygons, whether a shape is simple or compound
+        if (poly1->ignore_collisions.find(poly2->id) != poly1->ignore_collisions.end() ||
+        poly2->ignore_collisions.find(poly1->id) != poly2->ignore_collisions.end())
+        {
+            
+            continue;
+        }
+
         std::vector<std::tuple<bool, Vec2, Vec2, std::vector<ContactKey>>> results;
         bool collided_poly = false;
         bool collided = false;

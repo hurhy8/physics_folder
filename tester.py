@@ -6,7 +6,8 @@ print(sys.path)
 import physics
 PPM = 100
 pygame.init()
-WIDTH, HEIGHT = 1700, 900
+WIDTH, HEIGHT = 1700, 900 
+ZOOM = 1
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 
@@ -20,64 +21,199 @@ shapes = []
 
 # Main loop
 running = True
+font = pygame.font.SysFont(None, 32)
 polygon = physics.Polygon(4, length=200, mass=30, center_x=300, center_y=300)
 polygon.initialize_self_vector()
 #man.add_polygon(polygon)
-font = pygame.font.SysFont(None, 32)
+
 #man.add_polygon(polygon2)
 shapes.append(polygon)
 def create_car(mx, my):
     children2 = []
-    body =    physics.Rectangle(
-                        vertices=4,
-                        vx=0,
-                        center_x=mx/PPM,
-                        center_y=my/PPM,
-                        length=220/PPM,
-                        width = 25/PPM,
-                        mass=1,
-                        angle=0,
-                        static = False # rotate triangle to point outward
-                    )
 
-    wheel1 =    physics.Polygon(
-                        vertices=30,
-                        vx=0,
-                        center_x=mx + 2.1,
-                        center_y=my + 1.1,
-                        length=2/PPM,
-                        mass=16,
-                        angle=0,
-                        
-                    )
-    wheel2 =    physics.Polygon(
-                        vertices=260,
-                        vx=0,
-                        center_x=mx - 2.1,
-                        center_y=my-1.1,
-                        length=0.007,
-                        mass=16,
-                        angle=0,
-                        
-                    )
-    body.initialize_self_vector()
+    rect = physics.Rectangle(
+        vertices=4,
+        vx=0,
+        center_x=0 / PPM,
+        center_y=0 / PPM,
+        length=350 / PPM,
+        width=40 / PPM,
+        mass=100,
+        angle=0,
+        static=False
+    )
+
+    rect.angle = math.radians(0)
+
+    rect_top = physics.Rectangle(
+        vertices=4,
+        vx=0,
+        center_x=-35 / PPM,
+        center_y=-35 / PPM,
+        length=100 / PPM,
+        width=30 / PPM,
+        mass=1,
+        angle=0,
+        static=False
+    )
+    rect_top.local_center_x =-35 / PPM 
+    rect_top .local_center_y =-35 / PPM 
+    rect_top.angle = math.radians(0)
+
+    rect_bottom = physics.Rectangle(
+        vertices=4,
+        vx=0,
+        center_x=35 / PPM,
+        center_y=-5 / PPM,
+        length=130 / PPM,
+        width=30 / PPM,
+        mass=1,
+        angle=0,
+        static=False
+    )
+    rect_bottom.local_center_x =35 / PPM 
+    rect_bottom.local_center_y =-5 / PPM 
+    rect_bottom_left = physics.Rectangle(
+        vertices=4,
+        vx=0,
+        center_x=35 / PPM,
+        center_y=150 / PPM,
+        length=40 / PPM,
+        width=30 / PPM,
+        mass=1,
+        angle=0,
+        static=False
+    )
+    rect_bottom_left.local_center_x =35 / PPM 
+    rect_bottom_left.local_center_y =150 / PPM 
+    rect_bottom_right = physics.Rectangle(
+        vertices=4,
+        vx=0,
+        center_x=35 / PPM,
+        center_y=-160 / PPM,
+        length=40 / PPM,
+        width=30 / PPM,
+        mass=1,
+        angle=0,
+        static=False
+    )
+    rect_bottom_right.local_center_x =35 / PPM 
+    rect_bottom_right.local_center_y =-160 / PPM 
+    right = physics.RightTriangle(
+        vx=0,
+        length=60 / PPM,
+        width=45 / PPM,
+        mass=10,
+        center_x=-28 / PPM,
+        center_y=40 / PPM,
+        omega=0,
+        angle=math.radians(105)
+    )
+
+    right2 = physics.RightTriangle(
+        vx=0,
+        length=50 / PPM,
+        width=45 / PPM,
+        mass=10,
+        center_x=-28 / PPM,
+        center_y=-110 / PPM,
+        omega=0,
+        angle=math.radians(150)
+    )
+
+    right.initialize_self_vector()
+
+    children2.append(right)
+    children2.append(rect)
+    children2.append(rect_top)
+    children2.append(right2)
+    children2.append(rect_bottom)
+    children2.append(rect_bottom_left)
+    children2.append(rect_bottom_right)
+
+    body = physics.CompoundShape(
+        children2,
+        vertices=sum(len(c.world_vertices) for c in children2),
+        vx=0,
+        omega=0,
+        angle=0,
+    )
+
+    body.inertia *= 3
+
+    body.center_x = mx / PPM
+    body.center_y = my / PPM
+
+    man.add_polygon(body)
+
+    wheel1 = physics.Polygon(
+        vertices=32,
+        vx=0,
+        center_x=mx / PPM,
+        center_y=my / PPM,
+        length=7.5 / PPM,
+        mass=10,
+        angle=0
+    )
+
+    wheel2 = physics.Polygon(
+        vertices=32,
+        vx=0,
+        center_x=mx / PPM,
+        center_y=my / PPM,
+        length=7.5 / PPM,
+        mass=10,
+        angle=0
+    )
+
+    rect.initialize_self_vector()
+    rect_top.initialize_self_vector()
+    right.initialize_self_vector()
+    right2.initialize_self_vector()
+    rect_bottom.initialize_self_vector()
     wheel1.initialize_self_vector()
     wheel2.initialize_self_vector()
-    children2.append(
+
+    # --- ADD PIVOT JOINTS ---
+
+    wheel_offset_x = 50 / PPM
+    wheel_offset_y = 100 / PPM
+
+    joint1 = physics.PivotJoint(
+        physics.Vec2(wheel_offset_x, wheel_offset_y),
+        physics.Vec2(0, 0),
+        body,
         wheel1
     )
 
+    print(wheel2.ID, wheel1.ID, body.ID)
+
+    wheel1.ignore_collisions = {body.ID}
+    wheel2.ignore_collisions = {body.ID}
+
+    print(wheel1.ignore_collisions)
+
+    joint2 = physics.PivotJoint(
+        physics.Vec2(wheel_offset_x, -wheel_offset_y),
+        physics.Vec2(0, 0),
+        body,
+        wheel2
+    )
+
+    pendulum_solver.add_joint(joint1)
+    pendulum_solver.add_joint(joint2)
     
-    shape2 = physics.CompoundShape(children2, 
-                                vertices=sum(len(c.world_vertices) for c in children2),
-                                vx=00, omega=15, angle=0)
-    shape2.vx = 0
+    shapes.append(body)
+    
+    man.add_polygon(wheel1)
+    man.add_polygon(wheel2)
 
-    shape2.vy = 0
-    shape2.center_y=mx/PPM
-    shape2.center_x=my/PPM
+    right.angle = math.radians(90)
 
-    return wheel1
+    return body, wheel1, wheel2
+
+    # return full assembly, not just one wheel
+    
 
 def create_circle_enclosure(mx, my):
     children2 = []
@@ -270,6 +406,9 @@ def create_oval_hitbox(mx, my):
 
 heart_img = pygame.image.load("heart2.png").convert_alpha()
 oval_img = pygame.image.load("oval.png").convert_alpha()
+chassis_img = pygame.image.load("chassis.png").convert_alpha()
+wheel_img = pygame.image.load("wheel.png").convert_alpha()
+
 ovals = []
 
 
@@ -293,16 +432,16 @@ joint = physics.PendulumJoint(
 )
 """
 
-polygon_main = create_car(500, 500)
-create_circle_enclosure(800,300)
+polygon_main, wheel1, wheel2 = create_car(500, 500)
+wheels = [wheel1, wheel2]
+#create_circle_enclosure(800,300)
 #pendulum_solver.add_joint(joint)
 
 #polygon_main.initialize_self_vector()
 polygon_main.name = "main_polygon"
 polygon_main.remove = False
 
-shapes.append(polygon_main)
-man.add_polygon(polygon_main)
+
 
 initial_pos = ()
 def update_velocity_drag(polygon: physics.Polygon, initial_pos, mouse_release_pos):
@@ -456,14 +595,14 @@ def create_mobile(mx, my):
     create_branch(top,  top.width/2, 150, 150, depth=2, masses=(7.9, 2.3, 2.37, 2.35), masses_stick=(5.3, 3.9, 4.2))
 def create_rope(mx, my):
     total_height_y =0
-    original_length = 13
+    original_length = 17 / PPM
     
     
     num_rects = 45
-    offset_x = 13.01  # x-axis offset
+    offset_x = 17.01  # x-axis offset
     top_mass = 1     # mass of the first movable segment
     bottom_mass = 0.01  # mass of the last segment
-    mass = 0.1
+    mass = 10
     previous_rect = None
 
     for i in range(num_rects):
@@ -477,10 +616,10 @@ def create_rope(mx, my):
         rect = physics.Rectangle(
             vertices=4,
             vx=0,
-            center_x=mx,
-            center_y=my + i * offset_x,
-            length=int(original_length),
-            width=10,
+            center_x=mx / PPM,
+            center_y=(my + i * offset_x) / PPM,
+            length=original_length,
+            width=10 / PPM,
             mass=mass,
             omega=0,
             angle=math.radians(0),
@@ -505,14 +644,14 @@ def create_rope(mx, my):
 
 def create_bridge(mx, my):
     total_height_y =0
-    original_length = 13
+    original_length = 13 / PPM
     
     
-    num_rects = 45
-    offset_x = 25.01  # x-axis offset
+    num_rects = 35
+    offset_x = 25.1  # x-axis offset
     top_mass = 1     # mass of the first movable segment
     bottom_mass = 0.01  # mass of the last segment
-    mass = 0.1
+    mass =2
     previous_rect = None
 
     for i in range(num_rects):
@@ -526,10 +665,10 @@ def create_bridge(mx, my):
         rect = physics.Rectangle(
             vertices=4,
             vx=0,
-            center_x=mx + i * offset_x,
-            center_y=my,
-            length=int(10),
-            width=25,
+            center_x=(mx + i * offset_x) / PPM,
+            center_y=my / PPM,
+            length=(10) / PPM,
+            width=25 / PPM,
             mass=mass,
             omega=0,
             angle=math.radians(0),
@@ -553,26 +692,28 @@ total_width_x = 0
 def create_stack(mx, my):
     global total_width_x
     total_height_y =0
-    original_length = 70
+    original_length = 250
+    original_width = 25
     
     
     
         
     for i in range(1):
-        for i in range(10):
+        for i in range(21):
 
             
-            rect = physics.Polygon(
+            rect = physics.Rectangle(
                 vertices=4,
                 vx=0,
-                center_x=(WIDTH- ((original_length / 2) + total_width_x)-900)/PPM,
-                center_y=(HEIGHT-(((original_length/2) + total_height_y)))/PPM,
+                center_x=(WIDTH- ((original_length / 2) + total_width_x)-500)/PPM,
+                center_y=((HEIGHT)-(((original_length/2) + total_height_y)))/PPM,
                 length=original_length/PPM,
-                mass=0.01,
+                width = original_width/PPM,
+                mass=10,
                 omega=0,
-                angle=math.radians(22.5))
+                angle=math.radians(67.5))
             rect.initialize_self_vector()
-
+            
             rect.name = "to_watch"
             edges = []
             for i in range(len(rect.world_vertices)):
@@ -590,7 +731,7 @@ def create_stack(mx, my):
             
             rect.angle = math.radians(22.5)
 
-            total_height_y += original_length
+            total_height_y += original_width
             print("YOOO OMEGA", rect.omega)
             shapes.append(rect)
             man.add_polygon(rect)
@@ -605,18 +746,42 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_e:
+                polygon_main.vy += -1
+                polygon_main.omega += -1
+            if event.key == pygame.K_r:
+                polygon_main.vy += 1
+                polygon_main.omega += 1
+            if event.key == pygame.K_SPACE:
+                polygon_main.vy += -10
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
                 mx, my = pygame.mouse.get_pos()
-                create_stack(mx, my)
-                
+                create_rope(mx, my)
+                """
+                rect = physics.Rectangle(
+                            vertices=4,
+                            vx=0,
+                            center_x=mx/PPM,
+                            center_y=my/PPM,
+                            length=int(2),
+                            width=0.5,
+                            mass=10,
+                            omega=0,
+                            angle=math.radians(45),
+                            static = (False)
+                        )
+                rect.angle = math.radians(45 + 35)
+                rect.initialize_self_vector()
+                man.add_polygon(rect)
+                shapes.append(rect)
+                """
                 pos = pygame.mouse.get_pos()
-                #new_polygon = physics.Polygon(self.vertices, length=self.length, mass=self.mass, center_x=pos[0], center_y=pos[1], omega=0, vx=0)
-                #new_polygon.initialize_self_vector()
-                #man.add_polygon(new_polygon)
-                #self.polygons.append(new_polygon)
-                #new_polygon.angle = (math.pi * (self.vertices - 2))/(2*self.vertices)
+
+
+                
                 #for polygon in shapes:
                 #    polygon.allow_motion = False
                 
@@ -637,15 +802,37 @@ while running:
                 y1 = 0
             
     buttons = pygame.mouse.get_pressed()
+    keys = pygame.key.get_pressed()
+
+    torque = 2500.0  # tune this
+    
+    if keys:
+        polygon_main.sleep = False
+        polygon_main.num_times_sleepy = 0
+        wheel1.sleep = False
+        wheel1.num_times_sleepy = 0
+        wheel2.num_times_sleepy = 0
+        wheel2.sleep = False
+    if keys[pygame.K_d]:
+        wheel1.omega += (torque / wheel1.inertia) * 1/1000
+        wheel2.omega += (torque / wheel2.inertia) * 1/1000
+
+    if keys[pygame.K_a]:
+        wheel1.omega -= (torque / wheel1.inertia) * 1/1000
+        wheel2.omega -= (torque / wheel2.inertia) * 1/1000
+    if keys[pygame.K_w]:
+        
+        wheel1.omega *= 0.98
+        wheel2.omega *= 0.98
     if buttons[2]:
         pos = pygame.mouse.get_pos()
         velocity_threshold = 150
 
-    
+        polygon_main.sleep = False
         
-        polygon_main.center_x = pos[0]/PPM
+        polygon_main.center_x = pos[0]/PPM / ZOOM
     
-        polygon_main.center_y = pos[1]/PPM
+        polygon_main.center_y = pos[1]/PPM / ZOOM
         polygon_main.sleep = False
        # polygon_main.sleep = False
 
@@ -657,7 +844,7 @@ while running:
         min_y = min(v.y for v in all_vertices)
         max_y = max(v.y for v in all_vertices)
 
-        width = max_x - min_x
+        width = max_x - min_x 
         height = max_y - min_y
         center_x = heart.center_x  # your CompoundShape center
         center_y = heart.center_y
@@ -709,8 +896,62 @@ while running:
 
             # Draw it
             screen.blit(oval_rotated, rot_rect.topleft)
+
+
+
+
+    center_x = polygon_main.center_x * PPM * ZOOM  # your CompoundShape center
+    center_y = polygon_main.center_y * PPM * ZOOM
+
+    # Scale first
     
 
+    # Rotate after scaling
+
+
+    desired_width = 400 * ZOOM
+    desired_height = 400* ZOOM
+    
+    # Scale to the size you want
+    chassis_scaled = pygame.transform.scale(chassis_img, (desired_width, desired_height))
+    chassis_rotated = pygame.transform.rotate(chassis_scaled, -math.degrees(polygon_main.angle  + math.radians(270)))
+
+    # Center rotated rect
+    rot_rect = chassis_rotated.get_rect(center=(center_x, center_y))
+
+    # Draw it
+    screen.blit(chassis_rotated, rot_rect.topleft)
+
+    for wheel in wheels:
+        all_car_vertices = [v for v in wheel.world_vertices]
+        min_x = min(v.x for v in all_car_vertices)
+        max_x = max(v.x for v in all_car_vertices)
+        min_y = min(v.y for v in all_car_vertices)
+        max_y = max(v.y for v in all_car_vertices)
+
+        width = max_x - min_x
+        height = max_y - min_y
+        center_x = wheel.center_x * PPM* ZOOM  # your CompoundShape center
+        center_y = wheel.center_y * PPM* ZOOM
+       
+        # Scale first
+        
+
+        # Rotate after scaling
+
+
+        desired_width = int(width * PPM * ZOOM)
+        desired_height = int(height * PPM * ZOOM)
+
+        # Scale to the size you want
+        wheel_scaled = pygame.transform.scale(wheel_img, (desired_width, desired_height))
+        wheel_rotated = pygame.transform.rotate(wheel_scaled, -math.degrees(wheel.angle  + math.radians(45)))
+
+        # Center rotated rect
+        rot_rect = wheel_rotated.get_rect(center=(center_x, center_y))
+
+        # Draw it
+        screen.blit(wheel_rotated, rot_rect.topleft)
 
     colors = [(0, 255, 0)]  # green, white, red
     fractured_pieces = man.step()
@@ -754,6 +995,7 @@ while running:
             pygame.draw.line(screen, (255, 255, 255), (world_body_vec.x, world_body_vec.y), (world_body_vec2.x,world_body_vec2.y), 11)
 
     for i, shape in enumerate(shapes.copy()):
+        
         shape: physics.Polygon
         draw_x = shape.center_x * PPM 
         draw_y = shape.center_y * PPM
@@ -761,12 +1003,12 @@ while running:
         if isinstance(shape, physics.CompoundShape):
             #print(shape.vx, shape.vy, shape.omega, "velocities")
             for j, child in enumerate(shape.child_polygons):
-                points = [(v.x*PPM , v.y*PPM ) for v in child.world_vertices]
+                points = [(v.x*PPM * ZOOM , v.y*PPM * ZOOM) for v in child.world_vertices]
                 color = colors[j % len(colors)]
                 pygame.draw.polygon(screen, color, points, width=1)
         else:
-            points = [(v.x * PPM, v.y * PPM) for v in shape.world_vertices]
-            pygame.draw.line(screen, (123, 56, 3), (shape.center_x * PPM, shape.center_y * PPM), (shape.world_vertices[0].x*PPM,shape.world_vertices[0].y*PPM), 1)
+            points = [(v.x * PPM * ZOOM, v.y * PPM * ZOOM) for v in shape.world_vertices]
+            pygame.draw.line(screen, (123, 56, 3), (shape.center_x * PPM * ZOOM, shape.center_y * PPM * ZOOM), (shape.world_vertices[0].x*PPM * ZOOM,shape.world_vertices[0].y*PPM * ZOOM), 1)
             pygame.draw.polygon(screen, (255,0,0), points, 1)
             if shape.collided:
                 shape.allow_motion = True
@@ -778,7 +1020,7 @@ while running:
             #    print(shape.vx, shape.vy)
             
 
-    clock.tick(240)
+    clock.tick(540)
     pygame.display.flip()
 
 pygame.quit()

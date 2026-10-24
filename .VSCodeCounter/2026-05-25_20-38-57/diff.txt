@@ -1,0 +1,35 @@
+Date : 2026-05-25 20:38:57
+Directory : c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder
+Total : 10 files,  328 codes, 0 comments, 89 blanks, all 417 lines
+
+Languages
++----------+------------+------------+------------+------------+------------+
+| language | files      | code       | comment    | blank      | total      |
++----------+------------+------------+------------+------------+------------+
+| Python   |          3 |        202 |          8 |         54 |        264 |
+| C++      |          7 |        126 |         -8 |         35 |        153 |
++----------+------------+------------+------------+------------+------------+
+
+Directories
++----------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                       | files      | code       | comment    | blank      | total      |
++----------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                          |         10 |        328 |          0 |         89 |        417 |
++----------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++----------------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| filename                                                                   | language | code       | comment    | blank      | total      |
++----------------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\Polygon.cpp       | C++      |         25 |          2 |          2 |         29 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\compoundshape.cpp | C++      |          7 |          1 |          2 |         10 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\game_logic.py     | Python   |          1 |          0 |          0 |          1 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\pendulum.cpp      | C++      |         48 |        -12 |         19 |         55 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\physics.pyi       | Python   |         18 |          0 |          5 |         23 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\polygon.h         | C++      |         29 |          0 |          9 |         38 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\ppdetectres.cpp   | C++      |          6 |          0 |          0 |          6 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\pybindlink.cpp    | C++      |         12 |          0 |          2 |         14 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\step.cpp          | C++      |         -1 |          1 |          1 |          1 |
+| c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\tester.py         | Python   |        183 |          8 |         49 |        240 |
+| Total                                                                      |          |        328 |          0 |         89 |        417 |
++----------------------------------------------------------------------------+----------+------------+------------+------------+------------+

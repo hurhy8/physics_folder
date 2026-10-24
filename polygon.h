@@ -8,8 +8,10 @@
 #include <iostream>
 #include <functional>
 #include <optional>
+#include <ranges>
+#include <unordered_set>
 const double PI = 3.14159265358979323846;
-inline double dt = 1.0/240;
+inline double dt = 1.0/460;
 #define CHECK_FINITE(v, msg) \
     if (!(std::isfinite(v))) throw std::runtime_error(msg)
 
@@ -78,6 +80,7 @@ struct Shape {
     double local_center_x;
     double local_center_y;
     std::vector<Vec2> local_vertices;
+    std::unordered_set<int> ignore_collisions;
 
     std::string name = "";
     std::vector<std::pair<Vec2, Vec2>> edge_coordinates;
@@ -97,14 +100,17 @@ struct Shape {
           gravity(9.8), mass(mass_),
           elasticity(0.5), collision_elasticity(0.5),
           allow_motion(true), collision_frame_handled(false),
-          draw_animation(false), num_times_sleepy(0), id(next_id++),
+          draw_animation(false), num_times_sleepy(0),
           edge_coordinates(), static_body(static_)
     {
         if (static_body){
+            
             gravity = 0;
             std::cout << "gravity: " << gravity << "\n";
             mass = 1e10;
         }
+        id = next_id++;
+        
     }
 };
 
@@ -200,12 +206,12 @@ struct RectState {
 };
 class Rectangle : public Polygon {
     public:
-
+        int fracture_depth = 0;
         double width;
         bool aabb_overlap(const AABB& a, const AABB& b) override;
         void apply_rotation(Vec2 lever_arm_r, double Jx, double Jy) override;
         std::vector<Vec2> calculate_vertices_and_inertia() override;
-        std::optional<std::pair<Rectangle, Rectangle>> fracture(double impulse, Vec2 contact_point, double fracture_threshold=7500.5);
+        std::optional<std::pair<Rectangle, Rectangle>> fracture(double impulse, Vec2 contact_point, double fracture_threshold=250000);
         Rectangle(int vertices_ = 4, double vx_ = 0, double center_x_ = 400, 
             double center_y_ = 0, double length_ = 110, double width_ = 70,
             double omega_ = 3, double angle_ = (0), double mass_ = 25, bool static_ = false)
@@ -213,7 +219,9 @@ class Rectangle : public Polygon {
                 length_, omega_, angle_,
                 mass_, static_), width(width_){
                     
-                    
+                    center_x = center_x_;
+                    center_y = center_y_;
+                    angle = angle_;
                     local_vertices = calculate_vertices_and_inertia();
                     update_world_vertices();
                     update_aabb();
@@ -226,6 +234,33 @@ class Rectangle : public Polygon {
                 };
 
 };
+class RightTriangle : public Polygon {
+    public:
+        double width;
+        std::vector<Vec2> calculate_vertices_and_inertia() override;
+        bool aabb_overlap(const AABB& a, const AABB& b) override;
+        void apply_rotation(Vec2 lever_arm_r, double Jx, double Jy) override;
+        RightTriangle(double vx_ = 0, double center_x_ = 40, 
+            double center_y_ = 0, double equal_side = 11, double unique_side = 7,
+            double omega_ = 3, double angle_ = (0), double mass_ = 25)
+            : Polygon(3, vx_, center_x_, center_y_,
+                equal_side, omega_, angle_,
+                mass_, false), width(unique_side){
+                    local_center_x = center_x_;
+                    local_center_y = center_y_;
+                    angle = angle_;
+                    local_vertices = calculate_vertices_and_inertia();
+                    update_world_vertices();
+                    update_aabb();
+
+                    if (vertices < 3 || world_vertices.size() < 3 || local_vertices.size() < 3 || inertia <=0 || std::isnan(inertia) || mass <= 0
+                    || std::isnan(angle)){
+                        throw std::runtime_error("Something went very wrong with polygon creation.");
+                    }
+                };
+
+};
+
 
 class Joint {
     public:
@@ -297,7 +332,36 @@ struct DynamicJoint : public Joint {
     
     
 };
+
+struct PivotJoint : public Joint {
+    Vec2 body_anchor1;
+    
+    Vec2 body_anchor2;
+    double rope_length;
+    Vec2 initial_components;
+    std::shared_ptr<Shape> rigid_body1;
+    std::shared_ptr<Shape> rigid_body2;
+    void impulse_resolution();
+    std::vector<std::shared_ptr<Shape>> get_bodies() override;
+    std::tuple<double, double, Vec2> relative_velocity(Shape& polygon, Vec2 contact);
+    Vec2 update_local_anchor(Vec2 anchor, std::shared_ptr<Shape> shape) const;
+    
+
+    PivotJoint(Vec2 world1, Vec2 world2, std::shared_ptr<Shape> body, std::shared_ptr<Shape> body_other)
+        : body_anchor1(world1), body_anchor2(world2), rigid_body1(body), rigid_body2(body_other){
+            Vec2 body_to_world1 = update_local_anchor(body_anchor1, rigid_body1);
+            Vec2 body_to_world2 = update_local_anchor(body_anchor2, rigid_body2);
+            
+            
+        }
+    
+    
+    
+};
 inline std::vector<std::shared_ptr<Shape>> DynamicJoint::get_bodies()  {
+    return { rigid_body1, rigid_body2};
+}
+inline std::vector<std::shared_ptr<Shape>> PivotJoint::get_bodies()  {
     return { rigid_body1, rigid_body2};
 }
 struct SoftJoint : public Joint {
@@ -370,32 +434,6 @@ inline void PendulumSolver::remove_rigid_body(std::shared_ptr<Shape> rigid_body)
     }
     
 }
-class IsoscelesTriangle : public Polygon {
-    public:
-        double width;
-        std::vector<Vec2> calculate_vertices_and_inertia() override;
-        bool aabb_overlap(const AABB& a, const AABB& b) override;
-        void apply_rotation(Vec2 lever_arm_r, double Jx, double Jy) override;
-        IsoscelesTriangle(int vertices_ = 3, double vx_ = 0, double center_x_ = 400, 
-            double center_y_ = 0, int equal_side = 110, int unique_side = 70,
-            double omega_ = 3, double angle_ = (0), double mass_ = 25)
-            : Polygon(vertices_, vx_, center_x_, center_y_,
-                equal_side, omega_, angle_,
-                mass_, false), width(unique_side){
-                    angle = angle_;
-                    center_x = center_x_;
-                    center_y = center_y_;
-                    local_vertices = calculate_vertices_and_inertia();
-                    update_world_vertices();
-                    update_aabb();
-
-                    if (vertices < 3 || world_vertices.size() < 3 || local_vertices.size() < 3 || inertia <=0 || std::isnan(inertia) || mass <= 0
-                    || std::isnan(angle)){
-                        throw std::runtime_error("Something went very wrong with polygon creation.");
-                    }
-                };
-
-};
 
 class CompoundShape : public Shape {
     public:

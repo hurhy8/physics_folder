@@ -75,7 +75,22 @@ void PendulumJoint::impulse_resolution(){
     }
 
 }
+std::tuple<double, double, Vec2> PivotJoint::relative_velocity(Shape& polygon, Vec2 contact){
+    double lever_arm_x = 0;
+    double lever_arm_y = 0;
 
+    lever_arm_x += contact.x - polygon.center_x;
+    lever_arm_y += contact.y - polygon.center_y;
+    
+
+    Vec2 lever_arm_r = Vec2(lever_arm_x, lever_arm_y);
+    double v_rot_x = -polygon.omega * lever_arm_r.y;
+    double v_rot_y = polygon.omega * lever_arm_r.x;
+    double v_contact_x = polygon.vx + v_rot_x;
+    double v_contact_y = polygon.vy + v_rot_y;
+    std::tuple<double, double, Vec2> result = {v_contact_x, v_contact_y, lever_arm_r};
+    return result;
+}
 
 std::tuple<double, double, Vec2> DynamicJoint::relative_velocity(Shape& polygon, Vec2 contact){
     double lever_arm_x = 0;
@@ -97,12 +112,10 @@ void DynamicJoint::impulse_resolution(){
 
     Vec2 body_to_world1 = update_local_anchor(body_anchor1, rigid_body1);
     Vec2 body_to_world2 = update_local_anchor(body_anchor2, rigid_body2);
-    Vec2 radius1 = Vec2(body_to_world1.x, body_to_world1.y);
 
-    Vec2 radius2 = Vec2(body_to_world2.x, body_to_world2.y);
 
-    auto [v_contact_x, v_contact_y, lever_arm] = relative_velocity(*rigid_body1, radius1);
-    auto [v_contact_x_other, v_contact_y_other, lever_arm_other] = relative_velocity(*rigid_body2, radius2);
+    auto [v_contact_x, v_contact_y, lever_arm] = relative_velocity(*rigid_body1, body_to_world1);
+    auto [v_contact_x_other, v_contact_y_other, lever_arm_other] = relative_velocity(*rigid_body2, body_to_world2);
 
     //std::tuple<double, double, Vec2> result = {v_contact_x, v_contact_y, lever_arm_r};
     Vec2 direction_vector = Vec2(body_to_world2.x - body_to_world1.x, body_to_world2.y - body_to_world1.y);
@@ -120,29 +133,14 @@ void DynamicJoint::impulse_resolution(){
     double r_cross_n_other = lever_arm_other.x * anchor_direction.y - lever_arm_other.y * anchor_direction.x;
     double denom_other = (1.0/rigid_body2->mass) + (r_cross_n_other*r_cross_n_other)/rigid_body2->inertia;
 
-    if (direction_mag > rope_length && relative_velocity_along_anchor > 0){
+    if (direction_mag > rope_length){
         //std::cout << "COLLISION RESOLUTION\n" << "ROPE LENGTH: " << rope_length << "\n";
         double error = direction_mag -rope_length;
-        double bias = ((0.4 * error)/dt);
+        double bias = ((0.3 * error)/dt);
         
         double impulse_scalar = -(relative_velocity_along_anchor+bias)/(denom+denom_other);
         double Jx = impulse_scalar * anchor_direction.x;
         double Jy = impulse_scalar * anchor_direction.y;
-
-       // std::cout
-       // << "DEBUG: dist=" << direction_mag
-       // << ", rope_length=" << rope_length
-      //  << ", error=" << (direction_mag - rope_length)
-      //  << ", anchor_dir=(" << anchor_direction.x << "," << anchor_direction.y << ")"
-      //  << ", denom=" << (denom + denom_other)
-      //  << ", rv_along_anchor=" << relative_velocity_along_anchor
-       // << ", impulse_scalar=" << impulse_scalar
-      //  << ", rb1_mass=" << rigid_body1->mass
-     //   << ", rb2_mass=" << rigid_body2->mass
-     //   << ", rb1_inertia=" << rigid_body1->inertia
-     //   << ", rb2_inertia=" << rigid_body2->inertia
-     //   << "\n";
-
         rigid_body1->vx -= Jx/rigid_body1->mass;
         rigid_body1->vy -= Jy/rigid_body1->mass;
         rigid_body1->apply_rotation(lever_arm, -Jx, -Jy);
@@ -158,6 +156,63 @@ void DynamicJoint::impulse_resolution(){
    
 
 }
+Vec2 PivotJoint::update_local_anchor(Vec2 anchor, std::shared_ptr<Shape> shape) const
+{
+    double cos_a = cos(shape->angle);
+    double sin_a = sin(shape->angle);
+
+    Vec2 r;
+    r.x = anchor.x * cos_a - anchor.y * sin_a;
+    r.y = anchor.x * sin_a + anchor.y * cos_a;
+
+    r;
+    return {shape->center_x + r.x, shape->center_y + r.y};
+}
+void PivotJoint::impulse_resolution(){
+
+    Vec2 body_to_world1 = update_local_anchor(body_anchor1, rigid_body1);
+    Vec2 body_to_world2 = update_local_anchor(body_anchor2, rigid_body2);
+    Vec2 r1 = Vec2(body_to_world1.x - rigid_body1->center_x, body_to_world1.y - rigid_body1->center_y);
+    Vec2 r2 = Vec2(body_to_world2.x - rigid_body2->center_x, body_to_world2.y - rigid_body2->center_y);
+
+    
+
+    auto [v_contact_x, v_contact_y, lever_arm] = relative_velocity(*rigid_body1, body_to_world1);
+    auto [v_contact_x_other, v_contact_y_other, lever_arm_other] = relative_velocity(*rigid_body2, body_to_world2);
+
+    //std::tuple<double, double, Vec2> result = {v_contact_x, v_contact_y, lever_arm_r};
+    Vec2 error = Vec2(body_to_world2.x - body_to_world1.x, body_to_world2.y - body_to_world1.y);
+    double rvx = v_contact_x_other -v_contact_x;
+    double rvy = v_contact_y_other-v_contact_y;
+    double k_xx = 1/rigid_body1->mass + 1/rigid_body2->mass + (r1.y * r1.y) / rigid_body1->inertia + (r2.y * r2.y) / rigid_body2->inertia;
+
+    double k_yy = 1/rigid_body1->mass + 1/rigid_body2->mass + (r1.x * r1.x) / rigid_body1->inertia + (r2.x * r2.x) / rigid_body2->inertia;
+    double k_xy = (-r1.x * r1.y) / rigid_body1->inertia - (r2.x * r2.y) / rigid_body2->inertia;
+    double det = k_xx * k_yy - k_xy * k_xy;
+    double inv_xx =  k_yy / det;
+    double inv_xy = -k_xy / det;
+    double inv_yy =  k_xx / det;
+    Vec2 bias  = Vec2((0.4 * error.x)/dt, (0.4 * error.y)/dt);
+    Vec2 relative_and_bias = Vec2(bias.x+rvx, bias.y+rvy);
+    Vec2 J = Vec2(-(inv_xx * relative_and_bias.x + inv_xy * relative_and_bias.y), -(inv_xy * relative_and_bias.x + inv_yy * relative_and_bias.y));
+
+      
+    rigid_body1->vx -= J.x/rigid_body1->mass;
+    rigid_body1->vy -= J.y/rigid_body1->mass;
+    rigid_body1->apply_rotation(lever_arm, -J.x, -J.y);
+
+
+    
+    rigid_body2->vx += J.x/rigid_body2->mass;
+    rigid_body2->vy += J.y/rigid_body2->mass;
+    rigid_body2->apply_rotation(lever_arm_other, J.x, J.y);
+
+    }
+    
+   
+
+
+
 
 Vec2 SoftJoint::update_local_anchor(Vec2 anchor, std::shared_ptr<Shape> shape) const {
     double angle = std::fmod(shape->angle, (2 * PI));
@@ -249,7 +304,7 @@ void SoftJoint::impulse_resolution(){
 
 void PendulumSolver::iterative_solver(){
     for (auto joint:joints){
-        for (int i = 0; i <150; ++i){
+        for (int i = 0; i <50; ++i){
 
             joint->impulse_resolution();
         }

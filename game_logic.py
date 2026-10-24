@@ -11,6 +11,7 @@ man = physics.PolygonManager(collision, pendulum_solver)
 pygame.init()
 SCREEN_HEIGHT = 900
 SCREEN_WIDTH = 1700
+PPU = 100
 class Timer:
     def __init__(self):
         self.last_time = 0
@@ -56,9 +57,9 @@ class Timer:
 
 
 def update_velocity_drag(polygon: physics.Polygon, initial_pos, mouse_release_pos):
-    dx = (initial_pos[0] - mouse_release_pos[0])* 8
+    dx = (initial_pos[0] - mouse_release_pos[0]) * PPU * 8
 
-    dy = (initial_pos[1] - mouse_release_pos[1]) * 8
+    dy = (initial_pos[1] - mouse_release_pos[1]) * PPU * 8
     
     #print(initial_pos)
     
@@ -85,7 +86,7 @@ def draw_trajectory(initial_pos, mouse_pos_x, mouse_pos_y, screen):
                 
                 if i + 1 >= len(trajectory):
                     return
-                pygame.draw.circle(screen, (255, 255, 255), (int(point[0]), int(point[1])), 5)
+                pygame.draw.circle(screen, (255, 255, 255), (int(point[0]) * PPU, int(point[1])) * PPU, 5)
 def show_score(score, screen, font):
     label_text = f"Score: {score}"
     label_surface = font.render(label_text, True, (255, 255, 255))
@@ -147,7 +148,7 @@ class GameLogic:
         first_stick.allow_motion= False
         self.sticks.append(first_stick)
         man.add_polygon(first_stick)
-        self.BARRIER = 500
+        self.BARRIER = 500/ PPU
         self.initial_pos = ()
         self.y1 = 0
         self.step = 1.28

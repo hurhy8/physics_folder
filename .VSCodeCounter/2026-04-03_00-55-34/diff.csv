@@ -1,0 +1,17 @@
+"filename", "language", "Python", "C++", "comment", "blank", "total"
+"c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\3Dphysics\3dtester.py", "Python", 41, 0, 11, 9, 61
+"c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\3Dphysics\sphere.py", "Python", 50, 0, 2, 10, 62
+"c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\Polygon.cpp", "C++", 0, 41, 15, 41, 97
+"c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\animation.py", "Python", 14, 0, 0, 2, 16
+"c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\compoundshape.cpp", "C++", 0, -1, 1, 4, 4
+"c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\game_logic.py", "Python", 13, 0, -8, 0, 5
+"c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\gui.py", "Python", 186, 0, 27, 33, 246
+"c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\hi.py", "Python", -2, 0, 4, 0, 2
+"c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\pendulum.cpp", "C++", 0, 163, 18, 76, 257
+"c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\physics.pyi", "Python", 68, 0, 0, 30, 98
+"c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\polygon.h", "C++", 0, 178, 13, 37, 228
+"c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\ppdetectres.cpp", "C++", 0, 162, 13, 40, 215
+"c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\pybindlink.cpp", "C++", 0, 46, -1, 6, 51
+"c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\step.cpp", "C++", 0, 17, 6, 11, 34
+"c:\Users\youse_\MSYS2\ucrt64\bin\projects\physics_folder\tester.py", "Python", 306, 0, 26, 71, 403
+"Total", "-", 676, 606, 127, 370, 1779

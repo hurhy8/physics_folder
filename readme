@@ -1,0 +1,21 @@
+2D Physics Engine
+
+A custom 2D rigid-body physics engine built in C++ with a Python interface and Pygame visualization.
+
+Features:
+Collision Detection: SAT-based convex polygon collision detection with AABB broad-phase filtering.
+Rigid-Body Dynamics: Simulates linear and angular motion, mass, and moment of inertia.
+Collision Resolution: Sequential impulse solver with friction.
+Constraints & Joints: Supports pivots, pendulum joints, and distance joints.
+Compound Objects: Build complex objects from multiple primitive shapes.
+Interactive Simulation: A game built on top of the engine that utilizies its features to showcase it..
+
+Tech Stack:
+C++
+Python
+Pygame
+Pybind11
+
+Overview:
+Developed from scratch to explore rigid-body mechanics, collision detection, constraint solving, and numerical stability.
+
